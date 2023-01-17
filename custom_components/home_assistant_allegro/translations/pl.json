@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Home Assistant Allegro",
+        "description": "Id i secret uzyskasz rejestrując aplikację: https://apps.developer.allegro.pl/",
+        "data": {
+          "client_id": "Client ID",
+          "client_secret": "Client secret"
+        }
+      }
+    },
+    "error": {
+      "auth": "Niepoprane ClientID/Client."
+    },
+    "abort": {
+      "single_instance_allowed": "Możesz utworzyć tylko jedną instację wtyczki."
+    }
+  }
+}

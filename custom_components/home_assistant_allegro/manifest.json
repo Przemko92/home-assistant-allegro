@@ -1,0 +1,13 @@
+{
+  "domain": "home_assistant_allegro",
+  "name": "Allegro",
+  "documentation": "https://github.com/Przemko92/home-assistant-allegro",
+  "issue_tracker": "https://github.com/Przemko92/home-assistant-allegro/issues",
+  "dependencies": [],
+  "config_flow": true,
+  "codeowners": [
+    "@Przemko92"
+  ],
+  "requirements": [],
+  "version": "0.0.1"
+}
