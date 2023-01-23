@@ -1,0 +1,26 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Allegro",
+                "description": "Go to https://allegro.pl and get value of QXLSESSID cookie using browser dev tools (F12)",
+                "data": {
+                    "QXLSESSID": "Cookie QXLSESSID value",
+                    "user_name": "User name"
+                }
+            }
+        },
+        "error": {
+            "auth": "Wrong cookiue value"
+        }
+    },
+    "options": {
+        "step": {
+            "user": {
+                "data": {
+                    "QXLSESSID": "Cookie QXLSESSID value"
+                }
+            }
+        }
+    }
+}

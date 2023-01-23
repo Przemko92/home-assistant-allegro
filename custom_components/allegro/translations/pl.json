@@ -1,0 +1,26 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Allegro",
+                "description": "Odwiedź stronę https://allegro.pl i pobierz wartość ciastecza QXLSESSID używając narzędzi developerskich przeglądarki (F12)",
+                "data": {
+                    "QXLSESSID": "Wartość QXLSESSID",
+                    "user_name": "User name"
+                }
+            }
+        },
+        "error": {
+            "auth": "Nieprawidłowe cookie"
+        }
+    },
+    "options": {
+        "step": {
+            "user": {
+                "data": {
+                    "QXLSESSID": "Wartość QXLSESSID"
+                }
+            }
+        }
+    }
+}

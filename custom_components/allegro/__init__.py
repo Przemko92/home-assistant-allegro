@@ -1,30 +1,31 @@
 """
-Custom integration to integrate home-assistant-allegro with Home Assistant.
+Custom integration to integrate Allegro with Home Assistant.
 
 For more details about this integration, please refer to
 https://github.com/Przemko92/home-assistant-allegro
 """
 import asyncio
-import logging
 from datetime import timedelta
+import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Config
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Config, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.helpers.update_coordinator import UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .data import AllegroData
-from .api import HomeAssistantAllegroApiClient
-from .const import CONF_TOKEN, CONF_CLIENT_ID
-from .const import CONF_CLIENT_SECRET
-from .const import DOMAIN
-from .const import PLATFORMS
-from .const import STARTUP_MESSAGE
 
-SCAN_INTERVAL = timedelta(minutes=5)
+from .api import AllegroApiClient
+
+from .const import (
+    CONF_COOKIE,
+    DOMAIN,
+    PLATFORMS,
+    STARTUP_MESSAGE,
+)
+
+SCAN_INTERVAL = timedelta(minutes=30)
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
@@ -40,14 +41,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass.data.setdefault(DOMAIN, {})
         _LOGGER.info(STARTUP_MESSAGE)
 
-    client_id = str(entry.data.get(CONF_CLIENT_ID))
-    secret = str(entry.data.get(CONF_CLIENT_SECRET))
-    token = entry.data.get(CONF_TOKEN)
+    cookie = entry.data.get(CONF_COOKIE)
 
-    session = async_get_clientsession(hass, verify_ssl=False)
-    client = HomeAssistantAllegroApiClient(session, client_id, secret, token)
+    session = async_get_clientsession(hass)
+    client = AllegroApiClient(cookie, session)
 
-    coordinator = HomeAssistantAllegroDataUpdateCoordinator(hass, client=client)
+    coordinator = AllegroDataUpdateCoordinator(hass, client=client)
     await coordinator.async_refresh()
 
     if not coordinator.last_update_success:
@@ -62,18 +61,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 hass.config_entries.async_forward_entry_setup(entry, platform)
             )
 
-    entry.add_update_listener(async_reload_entry)
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True
 
 
-class HomeAssistantAllegroDataUpdateCoordinator(DataUpdateCoordinator):
+class AllegroDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        client: HomeAssistantAllegroApiClient,
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, client: AllegroApiClient) -> None:
         """Initialize."""
         self.api = client
         self.platforms = []

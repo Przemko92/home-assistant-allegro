@@ -1,60 +1,67 @@
+# Home assistant Allegro integration
+
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]][license]
+[![License][license-shield]](LICENSE)
 
 [![hacs][hacsbadge]][hacs]
-[![Project Maintenance][maintenance-shield]][user_profile]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
-[![Discord][discord-shield]][discord]
 [![Community Forum][forum-shield]][forum]
+
 
 **This component will set up the following platforms.**
 
-| Platform        | Description                         |
-| --------------- | ----------------------------------- |
-| `binary_sensor` | Show something `True` or `False`.   |
-| `sensor`        | Show info from API.                 |
-| `switch`        | Switch something `True` or `False`. |
+Platform | Description
+-- | --
+`sensor.allegro_in_progress` | Contains info about orders in OTHER THAN DELIVERED or RETURNED status.
+`sensor.allegro_in_delivery` | Contains info about orders in IN_DELIVERY status.
+`sensor.allegro_in_transit` | Contains info about orders in IN_TRANSIT status.
+`sensor.allegro_waiting_for_pickup` | Contains info about orders in AVAILABLE_FOR_PICKUP status.
 
-![example][exampleimg]
-
-{% if not installed %}
 
 ## Installation
 
-1. Click install.
-1. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "home-assistant-allegro".
+HACS (recommended)
 
-{% endif %}
+1. Open HACS
+2. Search for Allegro buyer (use integrations tab) and download it
+3. In the HA UI go to "Configuration" -> "Integrations" and search for "Allegro buyer"
+4. Restart HomeAssistant
+5. Open another tab and go to https://allegro.pl and get value of QXLSESSID cookie using browser dev tools (F12)
+6. Install Alegro buyer integration and pass QXLSESSID value and your user name (optional - required for more than one instance)
 
 ## Configuration is done in the UI
 
-<!---->
+Parameter | Description
+-- | --
+`QXLSESSID` | Value of QXLSESSID cookie (required)
+`user_name` | Optional value for multiple instances
 
-## Credits
+## Contributions are welcome!
 
-This project was generated from [@oncleben31](https://github.com/oncleben31)'s [Home Assistant Custom Component Cookiecutter](https://github.com/oncleben31/cookiecutter-homeassistant-custom-component) template.
+If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
 
-Code template was mainly taken from [@Ludeeus](https://github.com/ludeeus)'s [integration_blueprint][integration_blueprint] template
+***
 
----
+[home_assistant_allegro]: https://github.com/Przemko92/home-assistant-allegro
 
-[integration_blueprint]: https://github.com/custom-components/integration_blueprint
-[buymecoffee]: https://www.buymeacoffee.com/ludeeus
+[buymecoffee]: https://www.buymeacoffee.com/przemko92
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
-[commits-shield]: https://img.shields.io/github/commit-activity/y/Przemko92/home-assistant-allegro.svg?style=for-the-badge
+
+[maintainer]: https://github.com/Przemko92
+[maintainer-shield]: https://img.shields.io/badge/maintainer-%40Przemko92-blue.svg?style=for-the-badge
+
 [commits]: https://github.com/Przemko92/home-assistant-allegro/commits/main
-[hacs]: https://hacs.xyz
+[commits-shield]: https://img.shields.io/github/commit-activity/y/Przemko92/home-assistant-allegro.svg?style=for-the-badge
+
+[hacs]: https://github.com/custom-components/hacs
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[discord]: https://discord.gg/Qa5fW2R
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
-[exampleimg]: example.png
-[forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=for-the-badge
+
 [forum]: https://community.home-assistant.io/
-[license]: https://github.com/Przemko92/home-assistant-allegro/blob/main/LICENSE
-[license-shield]: https://img.shields.io/github/license/Przemko92/home-assistant-allegro.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-%40Przemko92-blue.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/Przemko92/home-assistant-allegro.svg?style=for-the-badge
+[forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=for-the-badge
+
 [releases]: https://github.com/Przemko92/home-assistant-allegro/releases
-[user_profile]: https://github.com/Przemko92
+[releases-shield]: https://img.shields.io/github/release/Przemko92/home-assistant-allegro.svg?style=for-the-badge
+
+[license-shield]: https://img.shields.io/github/license/Przemko92/home-assistant-allegro.svg?style=for-the-badge
