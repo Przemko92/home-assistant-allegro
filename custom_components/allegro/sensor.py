@@ -70,6 +70,9 @@ class WaitingForDeliverySensor(AllegroEntity, SensorEntity):
                     "Offers": list(map(lambda i: i.get_title, item.get_offers)),
                     "tracing_url": item.get_delivery.get_url,
                     "delivery_name": item.get_delivery.get_name,
+                    "pickup_code": item.get_delivery.get_pickup_code,
+                    "receiver_phone_number": item.get_delivery.get_receiver_phone_number,
+                    "qr_code": item.get_delivery.get_qr_code,
                 }
             )
 
@@ -115,6 +118,9 @@ class WaitingForPickupSensor(AllegroEntity, SensorEntity):
                     "Offers": list(map(lambda i: i.get_title, item.get_offers)),
                     "tracing_url": item.get_delivery.get_url,
                     "delivery_name": item.get_delivery.get_name,
+                    "pickup_code": item.get_delivery.get_pickup_code,
+                    "receiver_phone_number": item.get_delivery.get_receiver_phone_number,
+                    "qr_code": item.get_delivery.get_qr_code,
                 }
             )
 

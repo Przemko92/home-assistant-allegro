@@ -33,12 +33,26 @@ class Order:
         waybills_data = delivery["waybillsData"]
 
         if "waybills" in waybills_data:
-            self._delivery = Delivery(
-                delivery["name"],
-                waybills_data["waybills"][0]["carrier"]["url"],
-            )
+            if "pickupCode" in waybills_data["waybills"][0]:
+                pickup = waybills_data["waybills"][0]["pickupCode"]
+
+                self._delivery = Delivery(
+                    delivery["name"],
+                    waybills_data["waybills"][0]["carrier"]["url"],
+                    pickup.get("code"),
+                    pickup.get("receiverPhoneNumber"),
+                    pickup.get("qrCode"),
+                )
+            else:
+                self._delivery = Delivery(
+                    delivery["name"],
+                    waybills_data["waybills"][0]["carrier"]["url"],
+                    None,
+                    None,
+                    None,
+                )
         else:
-            self._delivery = Delivery(delivery["name"], None)
+            self._delivery = Delivery(delivery["name"], None, None, None, None)
 
     def get_formatted_address(self, items: dict):
         """Returns formatted delivery address"""
@@ -95,10 +109,20 @@ class Status:
 class Delivery:
     """Delivery info"""
 
-    def __init__(self, name: str, url: str) -> None:
+    def __init__(
+        self,
+        name: str,
+        url: str,
+        pickup_code: str,
+        receiver_phone_number: str,
+        qr_code: str,
+    ) -> None:
         """Init method"""
         self._name = name
         self._url = url
+        self._pickup_code = pickup_code
+        self._receiver_phone_number = receiver_phone_number
+        self._qr_code = qr_code
 
     @property
     def get_name(self):
@@ -107,6 +131,18 @@ class Delivery:
     @property
     def get_url(self):
         return self._url
+
+    @property
+    def get_pickup_code(self):
+        return self._pickup_code
+
+    @property
+    def get_receiver_phone_number(self):
+        return self._receiver_phone_number
+
+    @property
+    def get_qr_code(self):
+        return self._qr_code
 
 
 class Offer:
