@@ -2,8 +2,8 @@
 
 NAME = "Allegro buyer"
 DOMAIN = "allegro"
-VERSION = "0.0.5"
-ATTRIBUTION = "Data provided by https://api.allegro.pl"
+VERSION = "0.1.0"
+ATTRIBUTION = "Data provided by http://api.allegro.pl"
 ISSUE_URL = "https://github.com/Przemko92/home-assistant-allegro"
 
 ICON_WAITING = "mdi:package-variant"
