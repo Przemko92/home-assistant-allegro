@@ -1,4 +1,5 @@
 """Sensor platform for Allegro."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -9,10 +10,10 @@ from homeassistant.components.sensor import SensorEntity, SensorEntityDescriptio
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import ICON_DELIVERY, ICON_READY, ICON_TRANSIT, ICON_WAITING
+from .const import ICON_CART, ICON_DELIVERY, ICON_READY, ICON_TRANSIT, ICON_WAITING
 from .coordinator import AllegroConfigEntry, AllegroCoordinator
 from .entity import AllegroEntity
-from .models import AllegroData, Order
+from .models import AllegroData, Cart, Order
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -59,8 +60,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Allegro sensors."""
+    coordinator = entry.runtime_data
     async_add_entities(
-        AllegroOrdersSensor(entry.runtime_data, description) for description in SENSORS
+        [
+            *(AllegroOrdersSensor(coordinator, description) for description in SENSORS),
+            AllegroCartSensor(coordinator),
+        ]
     )
 
 
@@ -101,3 +106,36 @@ class AllegroOrdersSensor(AllegroEntity, SensorEntity):
         if data is None:
             return []
         return self.entity_description.orders_fn(data)
+
+
+class AllegroCartSensor(AllegroEntity, SensorEntity):
+    """Number of items in the Allegro cart, with details as attributes."""
+
+    _attr_translation_key = "cart"
+    _attr_icon = ICON_CART
+
+    def __init__(self, coordinator: AllegroCoordinator) -> None:
+        """Initialize."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self._user_prefix}cart"
+
+    @property
+    def native_value(self) -> int:
+        """Return the number of pieces in the cart."""
+        cart = self._cart
+        return 0 if cart is None else cart.item_count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return cart details for dashboards."""
+        cart = self._cart
+        if cart is None:
+            return {"details": [], "total": 0, "currency": ""}
+        return cart.as_attributes()
+
+    @property
+    def _cart(self) -> Cart | None:
+        data = self.coordinator.data
+        if data is None:
+            return None
+        return data.cart

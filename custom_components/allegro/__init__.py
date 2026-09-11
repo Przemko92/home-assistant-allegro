@@ -1,4 +1,5 @@
 """Allegro buyer integration for Home Assistant."""
+
 from __future__ import annotations
 
 import logging
@@ -9,6 +10,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import AllegroApiClient
 from .const import CONF_COOKIE, DOMAIN, PLATFORMS, STARTUP_MESSAGE
 from .coordinator import AllegroConfigEntry, AllegroCoordinator
+from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__package__)
 
@@ -26,6 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: AllegroConfigEntry) -> b
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
+    async_setup_services(hass)
     return True
 
 

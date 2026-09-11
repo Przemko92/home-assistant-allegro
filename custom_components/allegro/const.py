@@ -10,6 +10,12 @@ ICON_WAITING = "mdi:package-variant"
 ICON_TRANSIT = "mdi:truck-delivery"
 ICON_DELIVERY = "mdi:map-marker-radius-outline"
 ICON_READY = "mdi:archive-check"
+ICON_CART = "mdi:cart"
+
+SERVICE_ADD_TO_CART = "add_to_cart"
+ATTR_ITEM_ID = "item_id"
+ATTR_QUANTITY = "quantity"
+ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 
 PLATFORMS = ["sensor"]
 
@@ -20,6 +26,7 @@ METHOD_COMPANION = "companion"
 METHOD_COOKIE = "cookie"
 
 ALLEGRO_API_URL = "https://api.allegro.pl"
+ALLEGRO_EDGE_URL = "https://edge.allegro.pl"
 ALLEGRO_START_URL = "https://allegro.pl"
 ALLEGRO_ORDERS_URL = "https://allegro.pl/moje-allegro/zakupy/kupione"
 COMPANION_WAIT = {

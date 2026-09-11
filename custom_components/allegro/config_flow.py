@@ -1,4 +1,5 @@
 """Adds config flow for Allegro."""
+
 from __future__ import annotations
 
 import logging
@@ -79,9 +80,7 @@ class AllegroFlowHandler(CompanionLoginFlow, config_entries.ConfigFlow, domain=D
             self._errors["base"] = "auth"
             return await self._show_cookie_form(user_input)
 
-        return await self._show_cookie_form(
-            {CONF_COOKIE: "", CONF_USERNAME: ""}
-        )
+        return await self._show_cookie_form({CONF_COOKIE: "", CONF_USERNAME: ""})
 
     async def async_companion_start(self) -> CompanionStart:
         return CompanionStart(start_url=ALLEGRO_START_URL, wait=COMPANION_WAIT)

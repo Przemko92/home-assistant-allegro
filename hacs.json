@@ -1,4 +1,6 @@
 {
-    "name": "Allegro buyer",
-    "homeassistant": "2022.11"
+  "name": "Allegro buyer",
+  "country": "PL",
+  "homeassistant": "2026.8.0",
+  "hacs": "2.0.5"
 }

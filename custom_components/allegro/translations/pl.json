@@ -1,4 +1,5 @@
 {
+    "title": "Allegro buyer",
     "config": {
         "step": {
             "user": {
@@ -68,6 +69,43 @@
             },
             "in_delivery": {
                 "name": "W dostawie"
+            },
+            "cart": {
+                "name": "Koszyk"
+            }
+        }
+    },
+    "exceptions": {
+        "add_to_cart_failed": {
+            "message": "Nie udało się dodać oferty {item_id} do koszyka: {error}"
+        },
+        "multiple_accounts": {
+            "message": "Skonfigurowano kilka kont Allegro. Wybierz konto."
+        },
+        "no_account": {
+            "message": "Nie załadowano konta Allegro."
+        },
+        "unknown_account": {
+            "message": "Nie znaleziono konta Allegro {entry_id}."
+        }
+    },
+    "services": {
+        "add_to_cart": {
+            "name": "Dodaj do koszyka",
+            "description": "Dodaje ofertę Allegro do koszyka.",
+            "fields": {
+                "item_id": {
+                    "name": "ID oferty",
+                    "description": "Parametr offerId z linku oferty, np. https://allegro.pl/produkt/...?offerId=15070058532."
+                },
+                "quantity": {
+                    "name": "Ilość",
+                    "description": "Liczba sztuk do dodania."
+                },
+                "config_entry_id": {
+                    "name": "Konto",
+                    "description": "Konto Allegro, gdy skonfigurowano więcej niż jedno."
+                }
             }
         }
     }
