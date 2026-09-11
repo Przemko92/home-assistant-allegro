@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+python3 -m pip install --requirement requirements.txt
+
+CONSTRAINTS="$(
+    python3 -c "import os, homeassistant; print(os.path.join(os.path.dirname(homeassistant.__file__), 'package_constraints.txt'))"
+)"
+
+# Pre-install homeassistant integration dependencies to avoid race conditions
+# when default_config loads many components in parallel on first start.
+python3 -m pip install \
+    --constraint "${CONSTRAINTS}" \
+    $(sed -n '3,79p' "${CONSTRAINTS}") \
+    numpy

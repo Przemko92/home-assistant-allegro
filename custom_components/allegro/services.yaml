@@ -1,0 +1,18 @@
+add_to_cart:
+  fields:
+    item_id:
+      required: true
+      example: "15070058532"
+      selector:
+        text:
+    quantity:
+      default: 1
+      example: 1
+      selector:
+        number:
+          min: 1
+          mode: box
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: allegro
