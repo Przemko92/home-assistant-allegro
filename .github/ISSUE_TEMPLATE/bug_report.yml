@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a problem with the Allegro integration
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first. Reports without a description, Home Assistant version, and debug log will be closed.
+  - type: input
+    id: integration_version
+    attributes:
+      label: Integration version
+      description: Value of `version` in `custom_components/allegro/manifest.json` (or the HACS installed version).
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2026.8.0"
+    validations:
+      required: true
+  - type: input
+    id: hacs_version
+    attributes:
+      label: HACS version
+      description: Optional. Leave empty if the integration was installed manually.
+  - type: textarea
+    id: bug
+    attributes:
+      label: Describe the bug
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug log
+      description: Enable debug logging for `custom_components.allegro` (see https://www.home-assistant.io/integrations/logger/) and paste the relevant lines.
+      render: text
+    validations:
+      required: true

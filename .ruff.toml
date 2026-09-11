@@ -1,0 +1,3 @@
+target-version = "py314"
+line-length = 88
+extend-exclude = [".vscode", "config"]

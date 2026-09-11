@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  release:
+    name: Attach integration zip
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Verify version matches tag
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(python3 -c "import json; print(json.load(open('custom_components/allegro/manifest.json'))['version'])")"
+          if [ "$tag" != "$version" ]; then
+            echo "Release tag '$GITHUB_REF_NAME' does not match manifest version '$version'."
+            echo "Bump version in custom_components/allegro/manifest.json and custom_components/allegro/const.py before tagging."
+            exit 1
+          fi
+
+      - name: Build zip
+        run: |
+          mkdir -p dist
+          (cd custom_components/allegro && zip -r ../../dist/allegro.zip .)
+
+      - name: Upload zip to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/allegro.zip
