@@ -3,15 +3,36 @@
         "step": {
             "user": {
                 "title": "Allegro",
-                "description": "Odwiedź stronę https://allegro.pl i pobierz wartość ciastecza QXLSESSID używając narzędzi developerskich przeglądarki (F12)",
+                "description": "Zaloguj się przez Browser Companion (Chromium w pasku bocznym) albo wklej QXLSESSID.",
+                "data": {
+                    "method": "Sposób logowania"
+                }
+            },
+            "cookie": {
+                "title": "Allegro",
+                "description": "Odwiedź https://allegro.pl i pobierz wartość ciasteczka QXLSESSID w narzędziach deweloperskich przeglądarki (F12).",
                 "data": {
                     "QXLSESSID": "Wartość QXLSESSID",
-                    "user_name": "User name"
+                    "user_name": "Nazwa użytkownika"
                 }
+            },
+            "companion": {
+                "title": "Browser Companion",
+                "description": "Otwórz Browser Companion w nowym oknie:\n\n[{companion_url}]({companion_href})\n\nZaloguj się na allegro.pl, a potem wejdź na https://allegro.pl/moje-allegro/zakupy/kupione. Na tej stronie zostanie przechwycone QXLSESSID."
+            },
+            "companion_failed": {
+                "title": "Browser Companion",
+                "description": "Nie udało się zalogować przez Browser Companion. Uruchom dodatek i zatwierdź, żeby spróbować ponownie. Możesz też anulować i wkleić QXLSESSID.\n\n[{companion_url}]({companion_href})"
             }
         },
         "error": {
             "auth": "Nieprawidłowe cookie"
+        },
+        "abort": {
+            "companion_unavailable": "Browser Companion nie przechwycił logowania. Spróbuj ponownie albo wklej QXLSESSID."
+        },
+        "progress": {
+            "companion_wait": "Otwórz Browser Companion w nowym oknie:\n\n[{companion_url}]({companion_href})\n\nZaloguj się, a potem wejdź na https://allegro.pl/moje-allegro/zakupy/kupione. Ten ekran zaktualizuje się po przechwyceniu QXLSESSID."
         }
     },
     "options": {
@@ -20,6 +41,33 @@
                 "data": {
                     "QXLSESSID": "Wartość QXLSESSID"
                 }
+            }
+        },
+        "error": {
+            "auth": "Nieprawidłowe cookie"
+        }
+    },
+    "selector": {
+        "method": {
+            "options": {
+                "companion": "Dodatek Browser Companion",
+                "cookie": "Wklej QXLSESSID"
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "in_progress": {
+                "name": "W realizacji"
+            },
+            "waiting_for_pickup": {
+                "name": "Do odbioru"
+            },
+            "in_transit": {
+                "name": "W transporcie"
+            },
+            "in_delivery": {
+                "name": "W dostawie"
             }
         }
     }

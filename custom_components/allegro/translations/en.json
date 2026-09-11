@@ -3,15 +3,36 @@
         "step": {
             "user": {
                 "title": "Allegro",
-                "description": "Go to https://allegro.pl and get value of QXLSESSID cookie using browser dev tools (F12)",
+                "description": "Sign in with Browser Companion (Chromium in the sidebar), or paste QXLSESSID.",
+                "data": {
+                    "method": "Sign-in method"
+                }
+            },
+            "cookie": {
+                "title": "Allegro",
+                "description": "Go to https://allegro.pl and get the QXLSESSID cookie using browser dev tools (F12).",
                 "data": {
                     "QXLSESSID": "Cookie QXLSESSID value",
                     "user_name": "User name"
                 }
+            },
+            "companion": {
+                "title": "Browser Companion",
+                "description": "Open Browser Companion in a new window:\n\n[{companion_url}]({companion_href})\n\nSign in on allegro.pl, then go to https://allegro.pl/moje-allegro/zakupy/kupione. QXLSESSID is captured on that page."
+            },
+            "companion_failed": {
+                "title": "Browser Companion",
+                "description": "Could not sign in with Browser Companion. Start the add-on, then submit to try again. You can also cancel and paste QXLSESSID instead.\n\n[{companion_url}]({companion_href})"
             }
         },
         "error": {
-            "auth": "Wrong cookiue value"
+            "auth": "Wrong cookie value"
+        },
+        "abort": {
+            "companion_unavailable": "Browser Companion did not capture the login. Try again or paste QXLSESSID."
+        },
+        "progress": {
+            "companion_wait": "Open Browser Companion in a new window:\n\n[{companion_url}]({companion_href})\n\nSign in, then open https://allegro.pl/moje-allegro/zakupy/kupione. This screen updates when QXLSESSID is captured."
         }
     },
     "options": {
@@ -20,6 +41,33 @@
                 "data": {
                     "QXLSESSID": "Cookie QXLSESSID value"
                 }
+            }
+        },
+        "error": {
+            "auth": "Wrong cookie value"
+        }
+    },
+    "selector": {
+        "method": {
+            "options": {
+                "companion": "Browser Companion add-on",
+                "cookie": "Paste QXLSESSID"
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "in_progress": {
+                "name": "In progress"
+            },
+            "waiting_for_pickup": {
+                "name": "Waiting for pickup"
+            },
+            "in_transit": {
+                "name": "In transit"
+            },
+            "in_delivery": {
+                "name": "In delivery"
             }
         }
     }

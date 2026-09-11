@@ -50,11 +50,9 @@ Use [black](https://github.com/ambv/black) to make sure the code follows the sty
 
 This custom component is based on [integration_blueprint template](https://github.com/custom-components/integration_blueprint).
 
-It comes with development environment in a container, easy to launch
-if you use Visual Studio Code. With this container you will have a stand alone
-Home Assistant instance running and already configured with the included
-[`.devcontainer/configuration.yaml`](./.devcontainer/configuration.yaml)
-file.
+It comes with a Visual Studio Code / Cursor Dev Container. Reopen the folder
+in the container, then run the task **Run Home Assistant on port 8123**.
+Home Assistant uses [`.devcontainer/configuration.yaml`](./.devcontainer/configuration.yaml).
 
 ## License
 

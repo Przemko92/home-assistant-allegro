@@ -28,8 +28,10 @@ HACS (recommended)
 2. Search for Allegro buyer (use integrations tab) and download it
 3. In the HA UI go to "Configuration" -> "Integrations" and search for "Allegro buyer"
 4. Restart HomeAssistant
-5. Open another tab and go to https://allegro.pl and get value of QXLSESSID cookie using browser dev tools (F12)
-6. Install Alegro buyer integration and pass QXLSESSID value and your user name (optional - required for more than one instance)
+5. Install **Browser Companion** add-on (Home Assistant OS / Supervised)
+6. Settings → Devices & services → **Allegro buyer**
+   - **Browser Companion** (recommended): sign in at allegro.pl in the sidebar browser
+   - **Paste QXLSESSID**: browser dev tools (F12)
 
 ## Configuration is done in the UI
 

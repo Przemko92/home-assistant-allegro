@@ -1,98 +1,63 @@
-"""Sample API Client."""
+"""Allegro API client."""
+from __future__ import annotations
+
 import logging
-import asyncio
-from typing import Any, Optional
+from typing import Any
+
 import aiohttp
-import async_timeout
 
-from .types.get_user_info import GetUserInfoResult
-from .types.get_order_result import GetOrdersResult
+from .const import ALLEGRO_API_URL, CONF_COOKIE
+from .models import Order, parse_orders
 
-from .const import ALLEGRO_API_URL
-
-TIMEOUT = 10
+TIMEOUT = aiohttp.ClientTimeout(total=10)
+_LOGGER = logging.getLogger(__package__)
 
 
-_LOGGER: logging.Logger = logging.getLogger(__package__)
-
-HEADERS = {"Content-type": "application/json; charset=UTF-8"}
+class AllegroApiError(Exception):
+    """Raised when an Allegro API request fails."""
 
 
 class AllegroApiClient:
-    """Api client"""
+    """HTTP client for Allegro buyer endpoints."""
 
     def __init__(self, cookie: str, session: aiohttp.ClientSession) -> None:
-        """Sample API Client."""
         self._cookie = cookie
-        self._api_wrapper = ApiWrapper(session)
+        self._session = session
 
-    async def get_standard_header(self, api_ver=1) -> dict:
-        """Returns standard request header"""
+    def _headers(self, api_ver: int) -> dict[str, str]:
         return {
-            "Cookie": "QXLSESSID=" + self._cookie,
+            "Cookie": f"{CONF_COOKIE}={self._cookie}",
             "Accept": f"application/vnd.allegro.public.v{api_ver}+json",
             "Referer": "https://allegro.pl/",
         }
 
-    async def get_orders(self) -> GetOrdersResult:
-        """Get orders from api"""
-        headers = await self.get_standard_header(3)
-        get_orders_response = await self._api_wrapper.get(
-            f"{ALLEGRO_API_URL}/myorder-api/myorders?limit=25", headers=headers
-        )
-        return GetOrdersResult(get_orders_response)
-
-    async def get_user_info(self) -> GetUserInfoResult:
-        """Get info about current user"""
-        headers = await self.get_standard_header(2)
-        get_orders_response = await self._api_wrapper.get(
-            f"{ALLEGRO_API_URL}/users", headers=headers
-        )
-        return GetUserInfoResult(get_orders_response)
-
-
-class ApiWrapper:
-    """Helper class"""
-
-    def __init__(self, session: aiohttp.ClientSession):
-        self._session = session
-
-    async def get(self, url: str, headers: dict = {}, auth: Any = None) -> dict:
-        """Run http GET method"""
-        return await self.api_wrapper("get", url, headers=headers, auth=auth)
-
-    async def post(
-        self, url: str, data: dict = {}, headers: dict = {}, auth: Any = None
-    ) -> dict:
-        """Run http POST method"""
-        return await self.api_wrapper(
-            "post", url, data=data, headers=headers, auth=auth
-        )
-
-    async def api_wrapper(
-        self,
-        method: str,
-        url: str,
-        data: dict = {},
-        headers: dict = {},
-        auth: Any = None,
-    ) -> Any:
-        """Get information from the API."""
+    async def _get(self, path: str, api_ver: int) -> Any:
+        url = f"{ALLEGRO_API_URL}{path}"
         try:
-            async with async_timeout.timeout(TIMEOUT):
-                if method == "get":
-                    response = await self._session.get(url, headers=headers, auth=auth)
-                    return await response.json()
+            async with self._session.get(
+                url, headers=self._headers(api_ver), timeout=TIMEOUT
+            ) as response:
+                if response.status >= 400:
+                    raise AllegroApiError(f"HTTP {response.status} for {path}")
+                return await response.json()
+        except TimeoutError as err:
+            _LOGGER.error("Timeout fetching %s", url)
+            raise AllegroApiError(f"Timeout fetching {url}") from err
+        except aiohttp.ClientError as err:
+            _LOGGER.error("Error fetching %s: %s", url, err)
+            raise AllegroApiError(f"Error fetching {url}") from err
 
-                elif method == "post":
-                    response = await self._session.post(
-                        url, headers=headers, data=data, auth=auth
-                    )
-                    return await response.json()
+    async def async_get_orders(self) -> list[Order]:
+        """Return parsed buyer orders."""
+        payload = await self._get("/myorder-api/myorders?limit=25", 3)
+        if not isinstance(payload, dict):
+            raise AllegroApiError("Unexpected orders response")
+        return parse_orders(payload)
 
-        except asyncio.TimeoutError as exception:
-            _LOGGER.error(
-                "Timeout error fetching information from %s - %s",
-                url,
-                exception,
-            )
+    async def async_get_login(self) -> str:
+        """Return the Allegro login for the current cookie."""
+        payload = await self._get("/users", 2)
+        try:
+            return payload["accounts"]["allegro"]["login"]
+        except (KeyError, TypeError) as err:
+            raise AllegroApiError("Unexpected user info response") from err
