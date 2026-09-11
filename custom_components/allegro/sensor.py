@@ -1,219 +1,141 @@
-"""Sensor platform for allegro_integration."""
-from homeassistant.components.sensor import SensorEntity
+"""Sensor platform for Allegro."""
 
-from . import AllegroDataUpdateCoordinator
+from __future__ import annotations
 
-from .const import (
-    DEFAULT_NAME,
-    DOMAIN,
-    ICON_WAITING,
-    ICON_READY,
-    ICON_TRANSIT,
-    ICON_DELIVERY,
-    SENSOR,
-    CONF_USERNAME,
-)
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
+
+from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .const import ICON_CART, ICON_DELIVERY, ICON_READY, ICON_TRANSIT, ICON_WAITING
+from .coordinator import AllegroConfigEntry, AllegroCoordinator
 from .entity import AllegroEntity
+from .models import AllegroData, Cart, Order
 
 
-async def async_setup_entry(hass, entry, async_add_devices):
-    """Setup sensor platform."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_devices(
+@dataclass(frozen=True, kw_only=True)
+class AllegroSensorDescription(SensorEntityDescription):
+    """Description of an Allegro orders sensor."""
+
+    orders_fn: Callable[[AllegroData], list[Order]]
+    include_pickup: bool = False
+
+
+SENSORS: tuple[AllegroSensorDescription, ...] = (
+    AllegroSensorDescription(
+        key="in_progress",
+        translation_key="in_progress",
+        icon=ICON_WAITING,
+        orders_fn=lambda data: data.not_delivered,
+        include_pickup=True,
+    ),
+    AllegroSensorDescription(
+        key="waiting_for_pickup",
+        translation_key="waiting_for_pickup",
+        icon=ICON_READY,
+        orders_fn=lambda data: data.waiting_for_pickup,
+        include_pickup=True,
+    ),
+    AllegroSensorDescription(
+        key="in_transit",
+        translation_key="in_transit",
+        icon=ICON_TRANSIT,
+        orders_fn=lambda data: data.in_transit,
+    ),
+    AllegroSensorDescription(
+        key="in_delivery",
+        translation_key="in_delivery",
+        icon=ICON_DELIVERY,
+        orders_fn=lambda data: data.in_delivery,
+    ),
+)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: AllegroConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Allegro sensors."""
+    coordinator = entry.runtime_data
+    async_add_entities(
         [
-            WaitingForDeliverySensor(coordinator, entry),
-            WaitingForPickupSensor(coordinator, entry),
-            InTransitSensor(coordinator, entry),
-            InDeliverySensor(coordinator, entry),
+            *(AllegroOrdersSensor(coordinator, description) for description in SENSORS),
+            AllegroCartSensor(coordinator),
         ]
     )
 
 
-class WaitingForDeliverySensor(AllegroEntity, SensorEntity):
-    """WaitingForDelivery Sensor class."""
+class AllegroOrdersSensor(AllegroEntity, SensorEntity):
+    """Number of orders in a given status, with details as attributes."""
 
-    def __init__(self, coordinator, config_entry) -> None:
-        """Init method"""
-        super().__init__(coordinator, config_entry)
+    entity_description: AllegroSensorDescription
 
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return f"{DEFAULT_NAME}_{self.get_user_name}in_progress"
-
-    @property
-    def native_value(self):
-        """Return the native value of the sensor."""
-        return len(self.get_allegro_data.get_not_delivered_orders)
+    def __init__(
+        self,
+        coordinator: AllegroCoordinator,
+        description: AllegroSensorDescription,
+    ) -> None:
+        """Initialize."""
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._attr_unique_id = f"{self._user_prefix}{description.key}"
 
     @property
-    def unique_id(self):
-        """Return a unique ID to use for this entity."""
-        return f"{self.get_user_name}in_progress"
+    def native_value(self) -> int:
+        """Return the number of matching orders."""
+        return len(self._orders)
 
     @property
-    def icon(self):
-        """Return the icon of the sensor."""
-        return ICON_WAITING
-
-    @property
-    def extra_state_attributes(self):
-        """Return the state attributes."""
-        orders = self.get_allegro_data.get_not_delivered_orders
-        items = []
-
-        for item in orders:
-            items.append(
-                {
-                    "Seller": item.get_seller,
-                    "Status": item.get_status.get_current_status,
-                    "Offers": list(map(lambda i: i.get_title, item.get_offers)),
-                    "tracing_url": item.get_delivery.get_url,
-                    "delivery_name": item.get_delivery.get_name,
-                    "pickup_code": item.get_delivery.get_pickup_code,
-                    "receiver_phone_number": item.get_delivery.get_receiver_phone_number,
-                    "qr_code": item.get_delivery.get_qr_code,
-                }
-            )
-
+    def extra_state_attributes(self) -> dict[str, list[dict[str, Any]]]:
+        """Return order details for dashboards."""
+        include_pickup = self.entity_description.include_pickup
         return {
-            "details": items,
+            "details": [
+                order.as_attributes(include_pickup=include_pickup)
+                for order in self._orders
+            ]
         }
 
+    @property
+    def _orders(self) -> list[Order]:
+        data = self.coordinator.data
+        if data is None:
+            return []
+        return self.entity_description.orders_fn(data)
 
-class WaitingForPickupSensor(AllegroEntity, SensorEntity):
-    """WaitingForPickupSensor Sensor class."""
+
+class AllegroCartSensor(AllegroEntity, SensorEntity):
+    """Number of items in the Allegro cart, with details as attributes."""
+
+    _attr_translation_key = "cart"
+    _attr_icon = ICON_CART
+
+    def __init__(self, coordinator: AllegroCoordinator) -> None:
+        """Initialize."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self._user_prefix}cart"
 
     @property
-    def name(self):
-        """Return the name of the sensor."""
-        return f"{DEFAULT_NAME}_{self.get_user_name}waiting_for_pickup"
+    def native_value(self) -> int:
+        """Return the number of pieces in the cart."""
+        cart = self._cart
+        return 0 if cart is None else cart.item_count
 
     @property
-    def native_value(self):
-        """Return the native value of the sensor."""
-        return len(self.get_allegro_data.get_waiting_for_pickup)
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return cart details for dashboards."""
+        cart = self._cart
+        if cart is None:
+            return {"details": [], "total": 0, "currency": ""}
+        return cart.as_attributes()
 
     @property
-    def unique_id(self):
-        """Return a unique ID to use for this entity."""
-        return f"{self.get_user_name}waiting_for_pickup"
-
-    @property
-    def icon(self):
-        """Return the icon of the sensor."""
-        return ICON_READY
-
-    @property
-    def extra_state_attributes(self):
-        """Return the state attributes."""
-        orders = self.get_allegro_data.get_waiting_for_pickup
-        items = []
-
-        for item in orders:
-            items.append(
-                {
-                    "Seller": item.get_seller,
-                    "Status": item.get_status.get_current_status,
-                    "Offers": list(map(lambda i: i.get_title, item.get_offers)),
-                    "tracing_url": item.get_delivery.get_url,
-                    "delivery_name": item.get_delivery.get_name,
-                    "pickup_code": item.get_delivery.get_pickup_code,
-                    "receiver_phone_number": item.get_delivery.get_receiver_phone_number,
-                    "qr_code": item.get_delivery.get_qr_code,
-                }
-            )
-
-        return {
-            "details": items,
-        }
-
-
-class InTransitSensor(AllegroEntity, SensorEntity):
-    """InTransit Sensor class."""
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return f"{DEFAULT_NAME}_{self.get_user_name}in_transit"
-
-    @property
-    def native_value(self):
-        """Return the native value of the sensor."""
-        return len(self.get_allegro_data.get_in_transit)
-
-    @property
-    def icon(self):
-        """Return the icon of the sensor."""
-        return ICON_TRANSIT
-
-    @property
-    def unique_id(self):
-        """Return a unique ID to use for this entity."""
-        return f"{self.get_user_name}in_transit"
-
-    @property
-    def extra_state_attributes(self):
-        """Return the state attributes."""
-        orders = self.get_allegro_data.get_in_transit
-        items = []
-
-        for item in orders:
-            items.append(
-                {
-                    "Seller": item.get_seller,
-                    "Status": item.get_status.get_current_status,
-                    "Offers": list(map(lambda i: i.get_title, item.get_offers)),
-                    "tracing_url": item.get_delivery.get_url,
-                    "delivery_name": item.get_delivery.get_name,
-                }
-            )
-
-        return {
-            "details": items,
-        }
-
-
-class InDeliverySensor(AllegroEntity, SensorEntity):
-    """InDeliverySensor Sensor class."""
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return f"{DEFAULT_NAME}_{self.get_user_name}in_delivery"
-
-    @property
-    def native_value(self):
-        """Return the native value of the sensor."""
-        return len(self.get_allegro_data.get_in_delivery)
-
-    @property
-    def icon(self):
-        """Return the icon of the sensor."""
-        return ICON_DELIVERY
-
-    @property
-    def unique_id(self):
-        """Return a unique ID to use for this entity."""
-        return f"{self.get_user_name}in_delivery"
-
-    @property
-    def extra_state_attributes(self):
-        """Return the state attributes."""
-        orders = self.get_allegro_data.get_in_delivery
-        items = []
-
-        for item in orders:
-            items.append(
-                {
-                    "Seller": item.get_seller,
-                    "Status": item.get_status.get_current_status,
-                    "Offers": list(map(lambda i: i.get_title, item.get_offers)),
-                    "tracing_url": item.get_delivery.get_url,
-                    "delivery_name": item.get_delivery.get_name,
-                }
-            )
-
-        return {
-            "details": items,
-        }
+    def _cart(self) -> Cart | None:
+        data = self.coordinator.data
+        if data is None:
+            return None
+        return data.cart

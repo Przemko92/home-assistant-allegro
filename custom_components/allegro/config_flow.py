@@ -1,67 +1,114 @@
 """Adds config flow for Allegro."""
+
+from __future__ import annotations
+
 import logging
+from typing import Any
+
+import voluptuous as vol
+from ha_browser_companion import CompanionLoginFlow, CompanionStart, captured_cookie
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
-import voluptuous as vol
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .api import AllegroApiClient
 from .const import (
+    ALLEGRO_START_URL,
+    COMPANION_WAIT,
     CONF_COOKIE,
+    CONF_METHOD,
     CONF_USERNAME,
     DOMAIN,
-    PLATFORMS,
+    METHOD_COMPANION,
+    METHOD_COOKIE,
 )
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
 
-class AllegroFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+class AllegroFlowHandler(CompanionLoginFlow, config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Allegro."""
 
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
+    companion_client_id = DOMAIN
 
     def __init__(self):
         """Initialize."""
-        self._errors = {}
+        self._errors: dict[str, str] = {}
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
         self._errors = {}
+        if not self.companion_supervisor_present():
+            return await self.async_step_cookie()
+        if user_input is None:
+            return self.async_show_form(
+                step_id="user",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(
+                            CONF_METHOD, default=METHOD_COMPANION
+                        ): SelectSelector(
+                            SelectSelectorConfig(
+                                options=[METHOD_COMPANION, METHOD_COOKIE],
+                                mode=SelectSelectorMode.LIST,
+                                translation_key="method",
+                            )
+                        ),
+                    }
+                ),
+            )
+        if user_input.get(CONF_METHOD) == METHOD_COOKIE:
+            return await self.async_step_cookie()
+        return await self.async_step_companion()
 
+    async def async_step_cookie(self, user_input=None):
+        """Paste QXLSESSID (legacy flow)."""
+        self._errors = {}
         if user_input is not None:
             login = await self._test_credentials(user_input[CONF_COOKIE])
             if login:
-                if user_input[CONF_USERNAME]:
-                    return self.async_create_entry(
-                        title="Allegro " + user_input[CONF_USERNAME], data=user_input
-                    )
-                user_input[CONF_USERNAME] = login
-                return self.async_create_entry(
-                    title="Allegro " + login, data=user_input
+                return self._create_entry(
+                    user_input[CONF_COOKIE],
+                    user_input.get(CONF_USERNAME) or login,
                 )
-            else:
-                self._errors["base"] = "auth"
+            self._errors["base"] = "auth"
+            return await self._show_cookie_form(user_input)
 
-            return await self._show_config_form(user_input)
+        return await self._show_cookie_form({CONF_COOKIE: "", CONF_USERNAME: ""})
 
-        user_input = {}
-        # Provide defaults for form
-        user_input[CONF_COOKIE] = ""
-        user_input[CONF_USERNAME] = ""
+    async def async_companion_start(self) -> CompanionStart:
+        return CompanionStart(start_url=ALLEGRO_START_URL, wait=COMPANION_WAIT)
 
-        return await self._show_config_form(user_input)
+    async def async_companion_finish(self, captured: dict[str, Any]):
+        cookie = captured_cookie(captured, CONF_COOKIE)
+        if not cookie:
+            return await self.async_step_companion_failed()
+        login = await self._test_credentials(cookie)
+        if not login:
+            return await self.async_step_companion_failed()
+        return self._create_entry(cookie, login)
+
+    def _create_entry(self, cookie: str, username: str):
+        return self.async_create_entry(
+            title="Allegro " + username,
+            data={CONF_COOKIE: cookie, CONF_USERNAME: username},
+        )
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
-        return AllegroOptionsFlowHandler(config_entry)
+    def async_get_options_flow(_config_entry):
+        return AllegroOptionsFlowHandler()
 
-    async def _show_config_form(self, user_input):  # pylint: disable=unused-argument
-        """Show the configuration form to edit location data."""
+    async def _show_cookie_form(self, user_input):
+        """Show the configuration form to paste QXLSESSID."""
         return self.async_show_form(
-            step_id="user",
+            step_id="cookie",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_COOKIE, default=user_input[CONF_COOKIE]): str,
@@ -71,56 +118,50 @@ class AllegroFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
-    async def _test_credentials(self, cookie):
-        """Return true if credentials is valid."""
-        try:
-            session = async_create_clientsession(self.hass)
-            client = AllegroApiClient(cookie, session)
-            result = await client.get_user_info()
-            return result.get_login
-        except Exception as exception:  # pylint: disable=broad-except
-            _LOGGER.error(
-                "Error while testing credentials %s",
-                exception,
-            )
+    async def _test_credentials(self, cookie: str) -> str | None:
+        """Return login if credentials are valid."""
+        return await _async_test_credentials(self.hass, cookie)
 
-            pass
-        return False
+
+async def _async_test_credentials(hass, cookie: str) -> str | None:
+    """Return Allegro login when QXLSESSID is valid."""
+    try:
+        client = AllegroApiClient(cookie, async_get_clientsession(hass))
+        return await client.async_get_login()
+    except Exception as exception:  # pylint: disable=broad-except
+        _LOGGER.error("Error while testing credentials: %s", exception)
+        return None
 
 
 class AllegroOptionsFlowHandler(config_entries.OptionsFlow):
-    """Allegro config flow options handler."""
+    """Update the stored QXLSESSID cookie."""
 
-    def __init__(self, config_entry):
-        """Initialize HACS options flow."""
-        self._config_entry = config_entry
-        self.options = dict(config_entry.options)
-
-    async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
+    async def async_step_init(self, user_input=None):
         """Manage the options."""
-        return await self.async_step_user()
+        return await self.async_step_user(user_input)
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            self.options.update(user_input)
-            return await self._update_options()
+            cookie = user_input[CONF_COOKIE].strip()
+            login = await _async_test_credentials(self.hass, cookie)
+            if login:
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry,
+                    data={**self.config_entry.data, CONF_COOKIE: cookie},
+                )
+                return self.async_create_entry(title="", data={})
+            errors["base"] = "auth"
 
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_COOKIE, default=self._config_entry.data[CONF_COOKIE]
+                        CONF_COOKIE, default=self.config_entry.data[CONF_COOKIE]
                     ): str,
                 }
             ),
-        )
-
-    async def _update_options(self):
-        """Update config entry options."""
-        self.options[CONF_USERNAME] = self._config_entry.data[CONF_USERNAME]
-
-        return self.async_create_entry(
-            title="Allegro " + self.options[CONF_USERNAME], data=self.options
+            errors=errors,
         )

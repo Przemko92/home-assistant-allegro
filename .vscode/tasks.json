@@ -2,28 +2,45 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Home Assistant on port 9123",
+            "label": "Run Home Assistant on port 8123",
             "type": "shell",
-            "command": "container start",
+            "command": "scripts/develop",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Run Home Assistant configuration check",
+            "type": "shell",
+            "command": "hass --script check_config --config ${workspaceFolder}/config",
             "problemMatcher": []
         },
         {
-            "label": "Run Home Assistant configuration against /config",
+            "label": "Upgrade Home Assistant to latest",
             "type": "shell",
-            "command": "container check",
-            "problemMatcher": []
-        },
-        {
-            "label": "Upgrade Home Assistant to latest dev",
-            "type": "shell",
-            "command": "container install",
+            "command": "python3 -m pip install --upgrade homeassistant",
             "problemMatcher": []
         },
         {
             "label": "Install a specific version of Home Assistant",
             "type": "shell",
-            "command": "container set-version",
+            "command": "python3 -m pip install homeassistant==${input:haVersion}",
             "problemMatcher": []
+        },
+        {
+            "label": "Lint",
+            "type": "shell",
+            "command": "scripts/lint",
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "haVersion",
+            "type": "promptString",
+            "description": "Home Assistant version (for example 2026.8.0)"
         }
     ]
 }

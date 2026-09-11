@@ -1,42 +1,90 @@
-# Home assistant Allegro integration
+# Home Assistant Allegro integration
+
+<img src="custom_components/allegro/brand/icon.png" alt="Allegro buyer" width="80">
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
-
 [![hacs][hacsbadge]][hacs]
+[![Validate][validate-shield]][validate]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
-[![Community Forum][forum-shield]][forum]
+Custom Home Assistant integration for [Allegro](https://allegro.pl) buyer accounts. It tracks orders and the shopping cart, and can add offers to the cart.
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Przemko92&repository=home-assistant-allegro&category=integration)
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=allegro)
 
-**This component will set up the following platforms.**
+## Features
 
-Platform | Description
--- | --
-`sensor.allegro_in_progress` | Contains info about orders in OTHER THAN DELIVERED or RETURNED status.
-`sensor.allegro_in_delivery` | Contains info about orders in IN_DELIVERY status.
-`sensor.allegro_in_transit` | Contains info about orders in IN_TRANSIT status.
-`sensor.allegro_waiting_for_pickup` | Contains info about orders in AVAILABLE_FOR_PICKUP status.
+| Entity | Description |
+| -- | -- |
+| `sensor.allegro_in_progress` | Orders in a status other than delivered or returned |
+| `sensor.allegro_in_delivery` | Orders in `IN_DELIVERY` status |
+| `sensor.allegro_in_transit` | Orders in `IN_TRANSIT` status |
+| `sensor.allegro_waiting_for_pickup` | Orders in `AVAILABLE_FOR_PICKUP` status |
+| `sensor.allegro_cart` | Number of items in the shopping cart (details in attributes) |
 
+## Services
+
+### `allegro.add_to_cart`
+
+Add an offer to the Allegro shopping cart. On success the cart sensor is refreshed.
+
+| Parameter | Description |
+| -- | -- |
+| `item_id` | Allegro offer ID (required). This is `offerId` from the offer URL. |
+| `quantity` | Pieces to add (default: 1) |
+| `config_entry_id` | Account to use when multiple Allegro accounts are configured |
+
+Example URL (`item_id` is the bold `offerId`):
+
+https://allegro.pl/produkt/kawa-ziarnista-100-arabica-west-caffee-brazil-monte-carmelo-1000-g-c7e0acba-5b98-4f99-969d-5e85580b95c6?offerId=**15070058532**
+
+```yaml
+service: allegro.add_to_cart
+data:
+  item_id: "15070058532"
+  quantity: 1
+```
 
 ## Installation
 
-HACS (recommended)
+### HACS (recommended)
 
 1. Open HACS
-2. Search for Allegro buyer (use integrations tab) and download it
-3. In the HA UI go to "Configuration" -> "Integrations" and search for "Allegro buyer"
-4. Restart HomeAssistant
-5. Open another tab and go to https://allegro.pl and get value of QXLSESSID cookie using browser dev tools (F12)
-6. Install Alegro buyer integration and pass QXLSESSID value and your user name (optional - required for more than one instance)
+2. Use the [My Home Assistant](https://my.home-assistant.io/redirect/hacs_repository/?owner=Przemko92&repository=home-assistant-allegro&category=integration) button above, **or** add this repository as a custom repository (`https://github.com/Przemko92/home-assistant-allegro`, category **Integration**)
+3. Search for **Allegro buyer** and download it
+4. Restart Home Assistant
+5. On Home Assistant OS / Supervised, install the **Browser Companion** add-on (recommended for sign-in)
+6. [Add the integration](https://my.home-assistant.io/redirect/config_flow_start/?domain=allegro): Settings → Devices & services → **Allegro buyer**
+   - **Browser Companion** (recommended): sign in at allegro.pl in the sidebar browser, then open **Moje Allegro → Zakupy → Kupione**. `QXLSESSID` is captured there
+   - **Paste QXLSESSID**: same as before (browser dev tools / F12)
+
+### Manual
+
+1. Copy `custom_components/allegro` into `<config>/custom_components/allegro`
+2. Restart Home Assistant
+3. Add **Allegro buyer** from Settings → Devices & services
 
 ## Configuration is done in the UI
 
-Parameter | Description
--- | --
-`QXLSESSID` | Value of QXLSESSID cookie (required)
-`user_name` | Optional value for multiple instances
+| Parameter | Description |
+| -- | -- |
+| `QXLSESSID` | Session cookie (captured by Companion, or pasted) |
+| `user_name` | Optional value for multiple instances |
+
+Minimum Home Assistant version: **2026.8.0**.
+
+To test against Supervisor + Companion, keep this repo next to `homeassistant-browser-companion`, rebuild that devcontainer, then run the task **Link Allegro custom component**. Details: `homeassistant-browser-companion/.devcontainer/README.md`.
+
+## Debug logging
+
+```yaml
+logger:
+  default: info
+  logs:
+    custom_components.allegro: debug
+```
 
 ## Contributions are welcome!
 
@@ -49,17 +97,14 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 [buymecoffee]: https://www.buymeacoffee.com/przemko92
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
 
-[maintainer]: https://github.com/Przemko92
-[maintainer-shield]: https://img.shields.io/badge/maintainer-%40Przemko92-blue.svg?style=for-the-badge
-
 [commits]: https://github.com/Przemko92/home-assistant-allegro/commits/main
 [commits-shield]: https://img.shields.io/github/commit-activity/y/Przemko92/home-assistant-allegro.svg?style=for-the-badge
 
-[hacs]: https://github.com/custom-components/hacs
+[hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 
-[forum]: https://community.home-assistant.io/
-[forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=for-the-badge
+[validate]: https://github.com/Przemko92/home-assistant-allegro/actions/workflows/validate.yml
+[validate-shield]: https://github.com/Przemko92/home-assistant-allegro/actions/workflows/validate.yml/badge.svg
 
 [releases]: https://github.com/Przemko92/home-assistant-allegro/releases
 [releases-shield]: https://img.shields.io/github/release/Przemko92/home-assistant-allegro.svg?style=for-the-badge

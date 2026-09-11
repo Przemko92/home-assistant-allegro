@@ -1,98 +1,141 @@
-"""Sample API Client."""
+"""Allegro API client."""
+
+from __future__ import annotations
+
+import json
 import logging
-import asyncio
-from typing import Any, Optional
+from typing import Any
+
 import aiohttp
-import async_timeout
 
-from .types.get_user_info import GetUserInfoResult
-from .types.get_order_result import GetOrdersResult
+from .const import ALLEGRO_API_URL, ALLEGRO_EDGE_URL, CONF_COOKIE
+from .models import Cart, Order, parse_cart, parse_orders
 
-from .const import ALLEGRO_API_URL
+TIMEOUT = aiohttp.ClientTimeout(total=10)
+_LOGGER = logging.getLogger(__package__)
 
-TIMEOUT = 10
+CART_DECORATORS = "CART_DEPRECATED,BENEFITS_DEPRECATED"
 
 
-_LOGGER: logging.Logger = logging.getLogger(__package__)
-
-HEADERS = {"Content-type": "application/json; charset=UTF-8"}
+class AllegroApiError(Exception):
+    """Raised when an Allegro API request fails."""
 
 
 class AllegroApiClient:
-    """Api client"""
+    """HTTP client for Allegro buyer endpoints."""
 
     def __init__(self, cookie: str, session: aiohttp.ClientSession) -> None:
-        """Sample API Client."""
         self._cookie = cookie
-        self._api_wrapper = ApiWrapper(session)
-
-    async def get_standard_header(self, api_ver=1) -> dict:
-        """Returns standard request header"""
-        return {
-            "Cookie": "QXLSESSID=" + self._cookie,
-            "Accept": f"application/vnd.allegro.public.v{api_ver}+json",
-            "Referer": "https://allegro.pl/",
-        }
-
-    async def get_orders(self) -> GetOrdersResult:
-        """Get orders from api"""
-        headers = await self.get_standard_header(3)
-        get_orders_response = await self._api_wrapper.get(
-            f"{ALLEGRO_API_URL}/myorder-api/myorders?limit=25", headers=headers
-        )
-        return GetOrdersResult(get_orders_response)
-
-    async def get_user_info(self) -> GetUserInfoResult:
-        """Get info about current user"""
-        headers = await self.get_standard_header(2)
-        get_orders_response = await self._api_wrapper.get(
-            f"{ALLEGRO_API_URL}/users", headers=headers
-        )
-        return GetUserInfoResult(get_orders_response)
-
-
-class ApiWrapper:
-    """Helper class"""
-
-    def __init__(self, session: aiohttp.ClientSession):
         self._session = session
 
-    async def get(self, url: str, headers: dict = {}, auth: Any = None) -> dict:
-        """Run http GET method"""
-        return await self.api_wrapper("get", url, headers=headers, auth=auth)
+    def _headers(
+        self,
+        api_ver: int,
+        *,
+        public: bool = True,
+        content_type: str | None = None,
+    ) -> dict[str, str]:
+        kind = "public" if public else "internal"
+        headers = {
+            "Cookie": f"{CONF_COOKIE}={self._cookie}",
+            "Accept": f"application/vnd.allegro.{kind}.v{api_ver}+json",
+            "Referer": "https://allegro.pl/",
+        }
+        if content_type:
+            headers["Content-Type"] = content_type
+        return headers
 
-    async def post(
-        self, url: str, data: dict = {}, headers: dict = {}, auth: Any = None
-    ) -> dict:
-        """Run http POST method"""
-        return await self.api_wrapper(
-            "post", url, data=data, headers=headers, auth=auth
-        )
-
-    async def api_wrapper(
+    async def _request(
         self,
         method: str,
-        url: str,
-        data: dict = {},
-        headers: dict = {},
-        auth: Any = None,
+        path: str,
+        api_ver: int,
+        *,
+        public: bool = True,
+        base_url: str = ALLEGRO_API_URL,
+        params: dict[str, str] | None = None,
+        payload: Any | None = None,
+        expected_status: int | None = None,
     ) -> Any:
-        """Get information from the API."""
+        url = f"{base_url}{path}"
+        content_type = None
+        data = None
+        if payload is not None:
+            kind = "public" if public else "internal"
+            content_type = f"application/vnd.allegro.{kind}.v{api_ver}+json"
+            data = json.dumps(payload)
         try:
-            async with async_timeout.timeout(TIMEOUT):
-                if method == "get":
-                    response = await self._session.get(url, headers=headers, auth=auth)
-                    return await response.json()
-
-                elif method == "post":
-                    response = await self._session.post(
-                        url, headers=headers, data=data, auth=auth
-                    )
-                    return await response.json()
-
-        except asyncio.TimeoutError as exception:
-            _LOGGER.error(
-                "Timeout error fetching information from %s - %s",
+            async with self._session.request(
+                method,
                 url,
-                exception,
-            )
+                headers=self._headers(
+                    api_ver, public=public, content_type=content_type
+                ),
+                params=params,
+                data=data,
+                timeout=TIMEOUT,
+            ) as response:
+                if expected_status is not None:
+                    ok = response.status == expected_status
+                else:
+                    ok = response.status < 400
+                if not ok:
+                    body = await response.text()
+                    _LOGGER.error(
+                        "Allegro API error %s for %s: %s",
+                        response.status,
+                        path,
+                        body,
+                    )
+                    raise AllegroApiError(f"HTTP {response.status} for {path}")
+                if response.status == 204:
+                    return None
+                return await response.json()
+        except TimeoutError as err:
+            _LOGGER.error("Timeout fetching %s", url)
+            raise AllegroApiError(f"Timeout fetching {url}") from err
+        except aiohttp.ClientError as err:
+            _LOGGER.error("Error fetching %s: %s", url, err)
+            raise AllegroApiError(f"Error fetching {url}") from err
+
+    async def _get(self, path: str, api_ver: int, **kwargs: Any) -> Any:
+        return await self._request("GET", path, api_ver, **kwargs)
+
+    async def async_get_orders(self) -> list[Order]:
+        """Return parsed buyer orders."""
+        payload = await self._get("/myorder-api/myorders?limit=25", 3)
+        if not isinstance(payload, dict):
+            raise AllegroApiError("Unexpected orders response")
+        return parse_orders(payload)
+
+    async def async_get_login(self) -> str:
+        """Return the Allegro login for the current cookie."""
+        payload = await self._get("/users", 2)
+        try:
+            return payload["accounts"]["allegro"]["login"]
+        except (KeyError, TypeError) as err:
+            raise AllegroApiError("Unexpected user info response") from err
+
+    async def async_get_cart(self) -> Cart:
+        """Return the current shopping cart."""
+        payload = await self._get(
+            "/cart",
+            7,
+            public=False,
+            base_url=ALLEGRO_EDGE_URL,
+            params={"decorators": CART_DECORATORS},
+        )
+        if not isinstance(payload, dict):
+            raise AllegroApiError("Unexpected cart response")
+        return parse_cart(payload)
+
+    async def async_add_to_cart(self, item_id: str, quantity: int = 1) -> None:
+        """Increase cart quantity for an offer. Succeeds on HTTP 204."""
+        await self._request(
+            "POST",
+            "/carts/changeQuantityCommand",
+            5,
+            base_url=ALLEGRO_EDGE_URL,
+            payload={"items": [{"itemId": item_id, "delta": quantity}]},
+            expected_status=204,
+        )

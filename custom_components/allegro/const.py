@@ -1,32 +1,42 @@
-"""Constants for allegro_integration."""
-# Base component constants
+"""Constants for the Allegro integration."""
+
 NAME = "Allegro buyer"
 DOMAIN = "allegro"
-DOMAIN_DATA = f"{DOMAIN}_data"
-VERSION = "0.0.2"
-ATTRIBUTION = "Data provided by http://api.allegro.pl"
+VERSION = "0.0.5"
+ATTRIBUTION = "Data provided by https://api.allegro.pl"
 ISSUE_URL = "https://github.com/Przemko92/home-assistant-allegro"
 
-# Icons
 ICON_WAITING = "mdi:package-variant"
 ICON_TRANSIT = "mdi:truck-delivery"
 ICON_DELIVERY = "mdi:map-marker-radius-outline"
 ICON_READY = "mdi:archive-check"
+ICON_CART = "mdi:cart"
 
-# Platforms
-SENSOR = "sensor"
-PLATFORMS = [SENSOR]
+SERVICE_ADD_TO_CART = "add_to_cart"
+ATTR_ITEM_ID = "item_id"
+ATTR_QUANTITY = "quantity"
+ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 
+PLATFORMS = ["sensor"]
 
-# Configuration and options
 CONF_COOKIE = "QXLSESSID"
 CONF_USERNAME = "user_name"
+CONF_METHOD = "method"
+METHOD_COMPANION = "companion"
+METHOD_COOKIE = "cookie"
 
 ALLEGRO_API_URL = "https://api.allegro.pl"
-
-# Defaults
-DEFAULT_NAME = DOMAIN
-
+ALLEGRO_EDGE_URL = "https://edge.allegro.pl"
+ALLEGRO_START_URL = "https://allegro.pl"
+ALLEGRO_ORDERS_URL = "https://allegro.pl/moje-allegro/zakupy/kupione"
+COMPANION_WAIT = {
+    "event": "navigation",
+    "url_prefixes": [
+        ALLEGRO_ORDERS_URL,
+        "https://www.allegro.pl/moje-allegro/zakupy/kupione",
+    ],
+    "cookies": [CONF_COOKIE],
+}
 
 STARTUP_MESSAGE = f"""
 -------------------------------------------------------------------

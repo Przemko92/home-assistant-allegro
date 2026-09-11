@@ -1,12 +1,12 @@
 {
   "domain": "allegro",
   "name": "Allegro buyer",
+  "codeowners": ["@Przemko92"],
+  "config_flow": true,
   "documentation": "https://github.com/Przemko92/home-assistant-allegro",
+  "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Przemko92/home-assistant-allegro/issues",
-  "version": "0.0.5",
-  "config_flow": true,
-  "codeowners": [
-    "@Przemko92"
-  ]
+  "requirements": ["ha-browser-companion>=0.1.0"],
+  "version": "0.0.5"
 }
