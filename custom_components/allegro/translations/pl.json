@@ -11,7 +11,7 @@
             },
             "cookie": {
                 "title": "Allegro",
-                "description": "Odwiedź https://allegro.pl i pobierz wartość ciasteczka QXLSESSID w narzędziach deweloperskich przeglądarki (F12).",
+                "description": "Odwiedź {allegro_url} i pobierz wartość ciasteczka QXLSESSID w narzędziach deweloperskich przeglądarki (F12).",
                 "data": {
                     "QXLSESSID": "Wartość QXLSESSID",
                     "user_name": "Nazwa użytkownika"
@@ -19,7 +19,7 @@
             },
             "companion": {
                 "title": "Browser Companion",
-                "description": "Otwórz Browser Companion w nowym oknie:\n\n[{companion_url}]({companion_href})\n\nZaloguj się na allegro.pl, a potem wejdź na https://allegro.pl/moje-allegro/zakupy/kupione. Na tej stronie zostanie przechwycone QXLSESSID."
+                "description": "Otwórz Browser Companion w nowym oknie:\n\n[{companion_url}]({companion_href})\n\nZaloguj się na allegro.pl, a potem wejdź na {orders_url}. Na tej stronie zostanie przechwycone QXLSESSID."
             },
             "companion_failed": {
                 "title": "Browser Companion",
@@ -33,7 +33,7 @@
             "companion_unavailable": "Browser Companion nie przechwycił logowania. Spróbuj ponownie albo wklej QXLSESSID."
         },
         "progress": {
-            "companion_wait": "Otwórz Browser Companion w nowym oknie:\n\n[{companion_url}]({companion_href})\n\nZaloguj się, a potem wejdź na https://allegro.pl/moje-allegro/zakupy/kupione. Ten ekran zaktualizuje się po przechwyceniu QXLSESSID."
+            "companion_wait": "Otwórz Browser Companion w nowym oknie:\n\n[{companion_url}]({companion_href})\n\nZaloguj się, a potem wejdź na {orders_url}. Ten ekran zaktualizuje się po przechwyceniu QXLSESSID."
         }
     },
     "options": {
@@ -96,7 +96,7 @@
             "fields": {
                 "item_id": {
                     "name": "ID oferty",
-                    "description": "Parametr offerId z linku oferty, np. https://allegro.pl/produkt/...?offerId=15070058532."
+                    "description": "Parametr offerId z linku oferty, na przykład 15070058532."
                 },
                 "quantity": {
                     "name": "Ilość",

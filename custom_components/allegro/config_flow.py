@@ -18,6 +18,7 @@ from homeassistant.helpers.selector import (
 
 from .api import AllegroApiClient
 from .const import (
+    ALLEGRO_ORDERS_URL,
     ALLEGRO_START_URL,
     COMPANION_WAIT,
     CONF_COOKIE,
@@ -27,6 +28,11 @@ from .const import (
     METHOD_COMPANION,
     METHOD_COOKIE,
 )
+
+_URL_PLACEHOLDERS = {
+    "allegro_url": ALLEGRO_START_URL,
+    "orders_url": ALLEGRO_ORDERS_URL,
+}
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
@@ -94,6 +100,10 @@ class AllegroFlowHandler(CompanionLoginFlow, config_entries.ConfigFlow, domain=D
             return await self.async_step_companion_failed()
         return self._create_entry(cookie, login)
 
+    def _companion_placeholders(self) -> dict[str, str]:
+        """Companion links plus Allegro URLs used in translations."""
+        return {**super()._companion_placeholders(), **_URL_PLACEHOLDERS}
+
     def _create_entry(self, cookie: str, username: str):
         return self.async_create_entry(
             title="Allegro " + username,
@@ -116,6 +126,7 @@ class AllegroFlowHandler(CompanionLoginFlow, config_entries.ConfigFlow, domain=D
                 }
             ),
             errors=self._errors,
+            description_placeholders=_URL_PLACEHOLDERS,
         )
 
     async def _test_credentials(self, cookie: str) -> str | None:
