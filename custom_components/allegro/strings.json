@@ -11,7 +11,7 @@
             },
             "cookie": {
                 "title": "Allegro",
-                "description": "Go to https://allegro.pl and get the QXLSESSID cookie using browser dev tools (F12).",
+                "description": "Go to {allegro_url} and get the QXLSESSID cookie using browser dev tools (F12).",
                 "data": {
                     "QXLSESSID": "Cookie QXLSESSID value",
                     "user_name": "User name"
@@ -19,7 +19,7 @@
             },
             "companion": {
                 "title": "Browser Companion",
-                "description": "Open Browser Companion in a new window:\n\n[{companion_url}]({companion_href})\n\nSign in on allegro.pl, then go to https://allegro.pl/moje-allegro/zakupy/kupione. QXLSESSID is captured on that page."
+                "description": "Open Browser Companion in a new window:\n\n[{companion_url}]({companion_href})\n\nSign in on allegro.pl, then go to {orders_url}. QXLSESSID is captured on that page."
             },
             "companion_failed": {
                 "title": "Browser Companion",
@@ -33,7 +33,7 @@
             "companion_unavailable": "Browser Companion did not capture the login. Try again or paste QXLSESSID."
         },
         "progress": {
-            "companion_wait": "Open Browser Companion in a new window:\n\n[{companion_url}]({companion_href})\n\nSign in, then open https://allegro.pl/moje-allegro/zakupy/kupione. This screen updates when QXLSESSID is captured."
+            "companion_wait": "Open Browser Companion in a new window:\n\n[{companion_url}]({companion_href})\n\nSign in, then open {orders_url}. This screen updates when QXLSESSID is captured."
         }
     },
     "options": {
@@ -96,7 +96,7 @@
             "fields": {
                 "item_id": {
                     "name": "Offer ID",
-                    "description": "Allegro offerId from the offer URL, e.g. https://allegro.pl/produkt/...?offerId=15070058532."
+                    "description": "Allegro offerId from the offer URL query parameter, for example 15070058532."
                 },
                 "quantity": {
                     "name": "Quantity",

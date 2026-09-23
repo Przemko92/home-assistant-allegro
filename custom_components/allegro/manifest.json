@@ -7,6 +7,6 @@
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Przemko92/home-assistant-allegro/issues",
-  "requirements": ["ha-browser-companion>=0.1.0"],
-  "version": "0.1.0"
+  "requirements": ["ha-browser-companion>=0.1.1"],
+  "version": "0.1.2"
 }

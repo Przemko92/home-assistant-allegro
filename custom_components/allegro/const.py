@@ -2,7 +2,7 @@
 
 NAME = "Allegro buyer"
 DOMAIN = "allegro"
-VERSION = "0.1.0"
+VERSION = "0.1.2"
 ATTRIBUTION = "Data provided by http://api.allegro.pl"
 ISSUE_URL = "https://github.com/Przemko92/home-assistant-allegro"
 
@@ -27,7 +27,7 @@ METHOD_COOKIE = "cookie"
 
 ALLEGRO_API_URL = "https://api.allegro.pl"
 ALLEGRO_EDGE_URL = "https://edge.allegro.pl"
-ALLEGRO_START_URL = "https://allegro.pl"
+ALLEGRO_START_URL = "https://allegro.pl/logowanie?origin_url=%2Fmoje-allegro%2Fzakupy%2Fkupione%3Fdd_referrer%3D"
 ALLEGRO_ORDERS_URL = "https://allegro.pl/moje-allegro/zakupy/kupione"
 COMPANION_WAIT = {
     "event": "navigation",

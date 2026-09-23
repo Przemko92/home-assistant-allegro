@@ -55,10 +55,10 @@ data:
 2. Use the [My Home Assistant](https://my.home-assistant.io/redirect/hacs_repository/?owner=Przemko92&repository=home-assistant-allegro&category=integration) button above, **or** add this repository as a custom repository (`https://github.com/Przemko92/home-assistant-allegro`, category **Integration**)
 3. Search for **Allegro buyer** and download it
 4. Restart Home Assistant
-5. On Home Assistant OS / Supervised, install the **Browser Companion** add-on (recommended for sign-in)
+5. Optionally install the [Browser Companion](https://github.com/Przemko92/homeassistant-browser-companion) add-on (Home Assistant OS / Supervised) for in-UI sign-in
 6. [Add the integration](https://my.home-assistant.io/redirect/config_flow_start/?domain=allegro): Settings → Devices & services → **Allegro buyer**
-   - **Browser Companion** (recommended): sign in at allegro.pl in the sidebar browser, then open **Moje Allegro → Zakupy → Kupione**. `QXLSESSID` is captured there
-   - **Paste QXLSESSID**: same as before (browser dev tools / F12)
+   - **Browser Companion** (optional): sign in at allegro.pl in the sidebar browser, then open **Moje Allegro → Zakupy → Kupione**. `QXLSESSID` is captured there
+   - **Paste QXLSESSID**: browser dev tools (F12)
 
 ### Manual
 
@@ -70,8 +70,10 @@ data:
 
 | Parameter | Description |
 | -- | -- |
-| `QXLSESSID` | Session cookie (captured by Companion, or pasted) |
+| `QXLSESSID` | Session cookie (pasted, or captured by optional Companion) |
 | `user_name` | Optional value for multiple instances |
+
+[Browser Companion](https://github.com/Przemko92/homeassistant-browser-companion) is optional. Without it, paste `QXLSESSID` from the browser.
 
 Minimum Home Assistant version: **2026.8.0**.
 
