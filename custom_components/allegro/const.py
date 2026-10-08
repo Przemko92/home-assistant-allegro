@@ -2,7 +2,7 @@
 
 NAME = "Allegro buyer"
 DOMAIN = "allegro"
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 ATTRIBUTION = "Data provided by http://api.allegro.pl"
 ISSUE_URL = "https://github.com/Przemko92/home-assistant-allegro"
 
