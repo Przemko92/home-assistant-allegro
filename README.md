@@ -24,6 +24,8 @@ Custom Home Assistant integration for [Allegro](https://allegro.pl) buyer accoun
 | `sensor.allegro_waiting_for_pickup` | Orders in `AVAILABLE_FOR_PICKUP` status |
 | `sensor.allegro_cart` | Number of items in the shopping cart (details in attributes) |
 
+Order details include `pickup_point_name`, `pickup_point_description`, and `pickup_point_address` when Allegro returns a parcel locker or other pickup point. The address is the street, postal code, and city of that point.
+
 ## Services
 
 ### `allegro.add_to_cart`

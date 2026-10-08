@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,6 +19,25 @@ COMPLETED_STATUSES = frozenset({STATUS_DELIVERED, STATUS_RETURNED, STATUS_CANCEL
 
 def _as_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _text(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _pickup_point_address(address: dict[str, Any]) -> str | None:
+    """Format a locker or pickup point as street, postal code, and city."""
+    street = _text(address.get("street"))
+    locality = " ".join(
+        part
+        for part in (_text(address.get("code")), _text(address.get("city")))
+        if part
+    )
+    parts = [part for part in (street, locality) if part]
+    return ", ".join(parts) or None
 
 
 def _money(value: Any) -> tuple[float, str]:
@@ -74,6 +93,22 @@ class Delivery:
     pickup_code: str | None
     receiver_phone_number: str | None
     qr_code: str | None
+    pickup_point_id: str | None
+    pickup_point_name: str | None
+    pickup_point_description: str | None
+    pickup_point_address: str | None
+
+    @property
+    def has_pickup_point(self) -> bool:
+        """Return whether Allegro sent a locker or pickup point."""
+        return any(
+            (
+                self.pickup_point_id,
+                self.pickup_point_name,
+                self.pickup_point_description,
+                self.pickup_point_address,
+            )
+        )
 
     @classmethod
     def from_api(cls, delivery: Any) -> Delivery:
@@ -83,12 +118,17 @@ class Delivery:
         waybill = _as_dict(waybills[0] if waybills else None)
         carrier = _as_dict(waybill.get("carrier"))
         pickup = _as_dict(waybill.get("pickupCode"))
+        point = _as_dict(payload.get("generalDelivery"))
         return cls(
             name=payload.get("name"),
             url=carrier.get("url"),
             pickup_code=pickup.get("code"),
             receiver_phone_number=pickup.get("receiverPhoneNumber"),
             qr_code=pickup.get("qrCode"),
+            pickup_point_id=_text(point.get("id")),
+            pickup_point_name=_text(point.get("name")),
+            pickup_point_description=_text(point.get("description")),
+            pickup_point_address=_pickup_point_address(_as_dict(point.get("address"))),
         )
 
 
@@ -128,6 +168,13 @@ class Order:
             "tracing_url": self.delivery.url,
             "delivery_name": self.delivery.name,
         }
+        if self.delivery.has_pickup_point:
+            attributes["pickup_point_id"] = self.delivery.pickup_point_id
+            attributes["pickup_point_name"] = self.delivery.pickup_point_name
+            attributes["pickup_point_description"] = (
+                self.delivery.pickup_point_description
+            )
+            attributes["pickup_point_address"] = self.delivery.pickup_point_address
         if include_pickup:
             attributes["pickup_code"] = self.delivery.pickup_code
             attributes["receiver_phone_number"] = self.delivery.receiver_phone_number
