@@ -18,7 +18,7 @@ Custom Home Assistant integration for [Allegro](https://allegro.pl) buyer accoun
 
 | Entity | Description |
 | -- | -- |
-| `sensor.allegro_in_progress` | Orders in a status other than delivered or returned |
+| `sensor.allegro_in_progress` | Orders that are not delivered, returned, returned to the seller, or cancelled |
 | `sensor.allegro_in_delivery` | Orders in `IN_DELIVERY` status |
 | `sensor.allegro_in_transit` | Orders in `IN_TRANSIT` status |
 | `sensor.allegro_waiting_for_pickup` | Orders in `AVAILABLE_FOR_PICKUP` status |
