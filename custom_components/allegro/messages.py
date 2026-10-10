@@ -53,13 +53,13 @@ ORDER_STATUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
 )
 
 
-def _collapse(text: str) -> str:
+def collapse_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
 def classify_message(preview: str) -> str:
     """Return the message category for a thread preview."""
-    text = _collapse(preview).casefold()
+    text = collapse_text(preview).casefold()
     if any(pattern.search(text) for pattern in INVOICE_PATTERNS):
         return CATEGORY_INVOICE
     # A question or free-form text from a person is never automatic noise.
@@ -118,7 +118,7 @@ class MessageThread:
             "category": self.category,
             "timestamp": self.timestamp,
             "read": self.read,
-            "preview": _collapse(self.preview)[:PREVIEW_LENGTH],
+            "preview": collapse_text(self.preview)[:PREVIEW_LENGTH],
         }
 
     def as_read(self) -> MessageThread:

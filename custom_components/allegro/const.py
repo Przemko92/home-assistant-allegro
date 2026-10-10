@@ -28,7 +28,7 @@ ATTR_THREAD_ID = "thread_id"
 ATTR_CATEGORY = "category"
 ATTR_DIRECTORY = "directory"
 
-PLATFORMS = ["sensor", "button"]
+PLATFORMS = ["sensor", "button", "todo"]
 
 CONF_DEFAULT_PICKUP_POINT = "default_pickup_point"
 CONF_AUTO_READ = "auto_read_messages"

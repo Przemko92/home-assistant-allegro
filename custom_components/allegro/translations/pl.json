@@ -102,6 +102,11 @@
             "mark_automatic_read": {
                 "name": "Oznacz automatyczne wiadomości jako przeczytane"
             }
+        },
+        "todo": {
+            "messages_todo": {
+                "name": "Wiadomości do przeczytania"
+            }
         }
     },
     "exceptions": {

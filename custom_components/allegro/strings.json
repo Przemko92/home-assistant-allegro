@@ -102,6 +102,11 @@
             "mark_automatic_read": {
                 "name": "Mark automatic messages as read"
             }
+        },
+        "todo": {
+            "messages_todo": {
+                "name": "Messages to read"
+            }
         }
     },
     "exceptions": {

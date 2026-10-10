@@ -26,6 +26,7 @@ Custom Home Assistant integration for [Allegro](https://allegro.pl) buyer accoun
 | `sensor.allegro_waiting_in_another_pickup_point` | Parcels waiting in a pickup point other than your default one (only when a default pickup point is set) |
 | `sensor.allegro_unread_messages` | Unread message threads. `details` lists the unread threads (`thread_id`, `seller`, `category`, `timestamp`, `preview`), `automatic` counts automatic shop messages |
 | `sensor.allegro_invoice_messages` | Recent message threads in which a seller sent an invoice (details in attributes) |
+| `todo.allegro_messages_to_read` | Unread message threads as a checklist: checking an item marks the thread as read |
 | `button.allegro_mark_automatic_messages_as_read` | Marks unread automatic order messages as read |
 
 Order details include `pickup_point_name`, `pickup_point_description`, and `pickup_point_address` when Allegro returns a parcel locker or other pickup point. The address is the street, postal code, and city of that point.
