@@ -112,7 +112,15 @@ class AllegroFlowHandler(CompanionLoginFlow, config_entries.ConfigFlow, domain=D
         """Companion links plus Allegro URLs used in translations."""
         return {**super()._companion_placeholders(), **_URL_PLACEHOLDERS}
 
+    async def async_step_reauth(self, entry_data):
+        """The session cookie stopped working: sign in again."""
+        return await self.async_step_user()
+
     def _create_entry(self, cookie: str, username: str):
+        if self.source == config_entries.SOURCE_REAUTH:
+            return self.async_update_reload_and_abort(
+                self._get_reauth_entry(), data_updates={CONF_COOKIE: cookie}
+            )
         return self.async_create_entry(
             title="Allegro " + username,
             data={CONF_COOKIE: cookie, CONF_USERNAME: username},

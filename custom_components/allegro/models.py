@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, time, tzinfo
+from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from typing import Any
 
 from .messages import Messages
@@ -409,13 +409,36 @@ class AllegroData:
         return next((p for p in self.packages if p.waybill in ids), None)
 
     @property
+    def unmatched_packages(self) -> list[Package]:
+        """Parcels in the tracking list that belong to none of the fetched orders."""
+        known = {
+            waybill for order in self.orders for waybill in order.delivery.waybill_ids
+        }
+        return [package for package in self.packages if package.waybill not in known]
+
+    @property
+    def pending_unmatched(self) -> list[Package]:
+        """Unmatched parcels that still have a pickup deadline in the future."""
+        floor = datetime.now(UTC) - timedelta(days=1)
+        return [
+            package
+            for package in self.unmatched_packages
+            if package.valid_to is not None and package.valid_to >= floor
+        ]
+
+    @property
     def next_pickup_deadline(self) -> datetime | None:
-        """The earliest deadline among parcels waiting for pickup."""
+        """The earliest deadline among parcels waiting for pickup.
+
+        Parcels that Allegro lists but that match no fetched order (for example an
+        order older than the fetched page) count too: missing one is the costly case.
+        """
         deadlines = [
             package.valid_to
             for order in self.waiting_for_pickup
             if (package := self.package_for(order)) and package.valid_to
         ]
+        deadlines += [package.valid_to for package in self.pending_unmatched]
         return min(deadlines) if deadlines else None
 
     def by_status(self, *statuses: str) -> list[Order]:
@@ -486,8 +509,12 @@ def parse_orders(payload: dict[str, Any]) -> list[Order]:
         if not myorders:
             continue
         group_id = str(group.get("groupId") or "")
-        try:
-            orders.append(Order.from_api(group_id, _as_dict(myorders[0])))
-        except (KeyError, TypeError, ValueError) as err:
-            _LOGGER.warning("Skipping Allegro order group %s: %s", group_id, err)
+        # One checkout can hold several orders (different sellers, own parcels).
+        for item in myorders:
+            if not isinstance(item, dict):
+                continue
+            try:
+                orders.append(Order.from_api(group_id, _as_dict(item)))
+            except (KeyError, TypeError, ValueError) as err:
+                _LOGGER.warning("Skipping Allegro order in group %s: %s", group_id, err)
     return orders

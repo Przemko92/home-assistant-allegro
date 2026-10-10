@@ -1,1 +1,2 @@
 pytest-homeassistant-custom-component==0.13.364
+ha-browser-companion>=0.1.1

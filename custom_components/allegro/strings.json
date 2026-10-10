@@ -30,7 +30,8 @@
             "auth": "Wrong cookie value"
         },
         "abort": {
-            "companion_unavailable": "Browser Companion did not capture the login. Try again or paste QXLSESSID."
+            "companion_unavailable": "Browser Companion did not capture the login. Try again or paste QXLSESSID.",
+            "reauth_successful": "Re-authentication was successful"
         },
         "progress": {
             "companion_wait": "Open Browser Companion in a new window:\n\n[{companion_url}]({companion_href})\n\nSign in, then open {orders_url}. This screen updates when QXLSESSID is captured."
@@ -99,6 +100,9 @@
             },
             "pickup_deadline": {
                 "name": "Pickup deadline"
+            },
+            "last_update": {
+                "name": "Last successful update"
             }
         },
         "button": {

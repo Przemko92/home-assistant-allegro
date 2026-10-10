@@ -11,6 +11,7 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
 )
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -96,6 +97,7 @@ async def async_setup_entry(
             ),
             AllegroCartSensor(coordinator),
             AllegroPickupDeadlineSensor(coordinator),
+            AllegroLastUpdateSensor(coordinator),
             AllegroMessagesSensor(coordinator),
             AllegroInvoicesSensor(coordinator),
         ]
@@ -275,7 +277,37 @@ class AllegroPickupDeadlineSensor(AllegroEntity, SensorEntity):
                     "pickup_deadline": deadline.isoformat() if deadline else None,
                 }
             )
+        for package in data.pending_unmatched:
+            rows.append(
+                {
+                    "seller": f"przesyłka {package.waybill}",
+                    "offers": [package.title] if package.title else [],
+                    "pickup_point_name": None,
+                    "pickup_point_address": None,
+                    "pickup_deadline": package.valid_to.isoformat(),
+                    "unmatched": True,
+                }
+            )
         rows.sort(
             key=lambda row: (row["pickup_deadline"] is None, row["pickup_deadline"])
         )
         return {"details": rows}
+
+
+class AllegroLastUpdateSensor(AllegroEntity, SensorEntity):
+    """When the orders were last fetched successfully. Alert when it gets old."""
+
+    _attr_translation_key = "last_update"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:clock-check-outline"
+
+    def __init__(self, coordinator: AllegroCoordinator) -> None:
+        """Initialize."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self._user_prefix}last_update"
+
+    @property
+    def native_value(self):
+        """Return the time of the last successful refresh."""
+        return self.coordinator.last_success

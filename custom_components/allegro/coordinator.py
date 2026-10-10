@@ -5,14 +5,15 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import replace
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .api import AllegroApiClient, AllegroApiError
+from .api import AllegroApiClient, AllegroApiError, AllegroAuthError
 from .const import (
     CONF_AUTO_READ,
     CONF_AUTO_READ_DAYS,
@@ -27,6 +28,8 @@ _LOGGER = logging.getLogger(__package__)
 SCAN_INTERVAL = timedelta(minutes=30)
 MAX_AUTO_READ = 10
 MAX_BULK_READ = 50
+# A single 401/403 can be a hiccup or a bot check; several in a row mean a dead session.
+AUTH_FAILURES_BEFORE_REAUTH = 3
 
 type AllegroConfigEntry = ConfigEntry["AllegroCoordinator"]
 
@@ -51,6 +54,8 @@ class AllegroCoordinator(DataUpdateCoordinator[AllegroData]):
             update_interval=SCAN_INTERVAL,
         )
         self.api = client
+        self._auth_failures = 0
+        self.last_success: datetime | None = None
 
     @property
     def default_pickup_point(self) -> str:
@@ -67,10 +72,18 @@ class AllegroCoordinator(DataUpdateCoordinator[AllegroData]):
             self.api.async_get_packages(dt_util.get_default_time_zone()),
             return_exceptions=True,
         )
+        if isinstance(orders, AllegroAuthError):
+            self._auth_failures += 1
+            # At startup there is no earlier data to fall back on: ask right away.
+            if self.data is None or self._auth_failures >= AUTH_FAILURES_BEFORE_REAUTH:
+                raise ConfigEntryAuthFailed(str(orders)) from orders
+            raise UpdateFailed(str(orders)) from orders
         if isinstance(orders, BaseException):
             if isinstance(orders, AllegroApiError):
                 raise UpdateFailed(str(orders)) from orders
             raise orders
+        self._auth_failures = 0
+        self.last_success = dt_util.utcnow()
         if isinstance(cart_result, AllegroApiError):
             _LOGGER.warning("Could not refresh Allegro cart: %s", cart_result)
             cart = self.data.cart if self.data is not None else Cart.empty()

@@ -30,7 +30,8 @@
             "auth": "Nieprawidłowe cookie"
         },
         "abort": {
-            "companion_unavailable": "Browser Companion nie przechwycił logowania. Spróbuj ponownie albo wklej QXLSESSID."
+            "companion_unavailable": "Browser Companion nie przechwycił logowania. Spróbuj ponownie albo wklej QXLSESSID.",
+            "reauth_successful": "Ponowne logowanie zakończone powodzeniem"
         },
         "progress": {
             "companion_wait": "Otwórz Browser Companion w nowym oknie:\n\n[{companion_url}]({companion_href})\n\nZaloguj się, a potem wejdź na {orders_url}. Ten ekran zaktualizuje się po przechwyceniu QXLSESSID."
@@ -99,6 +100,9 @@
             },
             "pickup_deadline": {
                 "name": "Termin odbioru paczki"
+            },
+            "last_update": {
+                "name": "Ostatnie udane odświeżenie"
             }
         },
         "button": {

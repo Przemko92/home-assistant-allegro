@@ -31,6 +31,7 @@ CHAT_HEADERS = {
     **MESSAGE_CENTER_HEADERS,
     "Content-Type": "application/vnd.allegro.internal.v3+json",
 }
+AUTH_STATUSES = frozenset({401, 403})
 THREAD_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 _LOGGER = logging.getLogger(__package__)
 
@@ -39,6 +40,10 @@ CART_DECORATORS = "CART_DEPRECATED,BENEFITS_DEPRECATED"
 
 class AllegroApiError(Exception):
     """Raised when an Allegro API request fails."""
+
+
+class AllegroAuthError(AllegroApiError):
+    """Raised when Allegro rejects the session cookie (expired or blocked)."""
 
 
 class AllegroApiClient:
@@ -107,13 +112,12 @@ class AllegroApiClient:
                 else:
                     ok = response.status < 400
                 if not ok:
+                    # The body can hold personal data: keep it out of the normal log.
                     body = await response.text()
-                    _LOGGER.error(
-                        "Allegro API error %s for %s: %s",
-                        response.status,
-                        path,
-                        body,
-                    )
+                    _LOGGER.error("Allegro API error %s for %s", response.status, path)
+                    _LOGGER.debug("Allegro API error body: %s", body[:300])
+                    if response.status in AUTH_STATUSES:
+                        raise AllegroAuthError(f"HTTP {response.status} for {path}")
                     raise AllegroApiError(f"HTTP {response.status} for {path}")
                 if response.status == 204:
                     return None
@@ -238,6 +242,8 @@ class AllegroApiClient:
                 },
                 timeout=DOWNLOAD_TIMEOUT,
             ) as response:
+                if response.status in AUTH_STATUSES:
+                    raise AllegroAuthError(f"HTTP {response.status} for attachment")
                 if response.status != 200:
                     raise AllegroApiError(f"HTTP {response.status} for attachment")
                 data = await response.content.read(MAX_ATTACHMENT_BYTES + 1)
