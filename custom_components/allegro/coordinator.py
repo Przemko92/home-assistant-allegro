@@ -20,7 +20,7 @@ from .const import (
     DEFAULT_AUTO_READ_DAYS,
     DOMAIN,
 )
-from .messages import Attachment, Messages
+from .messages import Attachment, Messages, MessageThread
 from .models import AllegroData, Cart
 
 _LOGGER = logging.getLogger(__package__)
@@ -92,15 +92,20 @@ class AllegroCoordinator(DataUpdateCoordinator[AllegroData]):
         )
         return await self._async_auto_read(data)
 
-    async def _async_auto_read(self, data: AllegroData) -> AllegroData:
-        """Mark automatic order messages as read when they are no longer useful."""
-        options = self.config_entry.options
-        if not options.get(CONF_AUTO_READ):
-            return data
-        days = float(options.get(CONF_AUTO_READ_DAYS) or DEFAULT_AUTO_READ_DAYS)
-        candidates = data.messages.auto_read_candidates(
+    def _older_threads(self, data: AllegroData) -> list[MessageThread]:
+        """Unread automatic order messages that no longer need attention."""
+        days = float(
+            self.config_entry.options.get(CONF_AUTO_READ_DAYS) or DEFAULT_AUTO_READ_DAYS
+        )
+        return data.messages.auto_read_candidates(
             data.active_sellers, days, dt_util.utcnow()
         )
+
+    async def _async_auto_read(self, data: AllegroData) -> AllegroData:
+        """Mark automatic order messages as read when they are no longer useful."""
+        if not self.config_entry.options.get(CONF_AUTO_READ):
+            return data
+        candidates = self._older_threads(data)
         read: set[str] = set()
         for thread in candidates[:MAX_AUTO_READ]:
             try:
@@ -137,6 +142,19 @@ class AllegroCoordinator(DataUpdateCoordinator[AllegroData]):
         read: set[str] = set()
         try:
             for thread in threads[:MAX_BULK_READ]:
+                await self.api.async_open_thread(thread.id)
+                read.add(thread.id)
+        finally:
+            self._apply_read(read)
+        return len(read)
+
+    async def async_mark_older_read(self) -> int:
+        """Mark older automatic order messages as read. Returns how many."""
+        if self.data is None:
+            return 0
+        read: set[str] = set()
+        try:
+            for thread in self._older_threads(self.data)[:MAX_BULK_READ]:
                 await self.api.async_open_thread(thread.id)
                 read.add(thread.id)
         finally:

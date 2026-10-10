@@ -101,6 +101,9 @@
         "button": {
             "mark_automatic_read": {
                 "name": "Mark automatic messages as read"
+            },
+            "mark_older_read": {
+                "name": "Mark older messages as read"
             }
         },
         "todo": {

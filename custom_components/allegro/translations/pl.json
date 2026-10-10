@@ -101,6 +101,9 @@
         "button": {
             "mark_automatic_read": {
                 "name": "Oznacz automatyczne wiadomości jako przeczytane"
+            },
+            "mark_older_read": {
+                "name": "Oznacz starsze wiadomości jako przeczytane"
             }
         },
         "todo": {
