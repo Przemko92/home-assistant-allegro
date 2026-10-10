@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
+
+from .messages import Messages
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,6 +115,25 @@ class Delivery:
             )
         )
 
+    def is_pickup_point(self, code: str) -> bool | None:
+        """Return whether the pickup point matches a code like `WAW01A`.
+
+        None when there is no pickup point to compare, or no code is configured.
+        """
+        code = code.strip().casefold()
+        if not code or not self.has_pickup_point:
+            return None
+        haystack = " ".join(
+            part
+            for part in (
+                self.pickup_point_id,
+                self.pickup_point_name,
+                self.pickup_point_description,
+            )
+            if part
+        )
+        return code in haystack.casefold()
+
     @classmethod
     def from_api(cls, delivery: Any) -> Delivery:
         """Create delivery info from optional Allegro fields."""
@@ -162,7 +183,9 @@ class Order:
             delivery=Delivery.from_api(item.get("delivery")),
         )
 
-    def as_attributes(self, *, include_pickup: bool = False) -> dict[str, Any]:
+    def as_attributes(
+        self, *, include_pickup: bool = False, default_pickup_point: str = ""
+    ) -> dict[str, Any]:
         """State attributes kept compatible with existing dashboards."""
         attributes: dict[str, Any] = {
             "Seller": self.seller,
@@ -178,6 +201,9 @@ class Order:
                 self.delivery.pickup_point_description
             )
             attributes["pickup_point_address"] = self.delivery.pickup_point_address
+            is_default = self.delivery.is_pickup_point(default_pickup_point)
+            if is_default is not None:
+                attributes["is_default_pickup_point"] = is_default
         if include_pickup:
             attributes["pickup_code"] = self.delivery.pickup_code
             attributes["receiver_phone_number"] = self.delivery.receiver_phone_number
@@ -283,6 +309,8 @@ class AllegroData:
 
     orders: list[Order]
     cart: Cart
+    messages: Messages = field(default_factory=Messages)
+    default_pickup_point: str = ""
 
     def by_status(self, *statuses: str) -> list[Order]:
         """Orders whose primary status is one of the given values."""
@@ -298,6 +326,20 @@ class AllegroData:
     @property
     def waiting_for_pickup(self) -> list[Order]:
         return self.by_status(STATUS_AVAILABLE_FOR_PICKUP)
+
+    @property
+    def waiting_other_pickup_point(self) -> list[Order]:
+        """Orders waiting in a pickup point other than the configured default."""
+        return [
+            order
+            for order in self.waiting_for_pickup
+            if order.delivery.is_pickup_point(self.default_pickup_point) is False
+        ]
+
+    @property
+    def active_sellers(self) -> set[str]:
+        """Sellers with an order that is still on its way."""
+        return {order.seller for order in self.not_delivered}
 
     @property
     def in_transit(self) -> list[Order]:

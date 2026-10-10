@@ -11,6 +11,10 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    BooleanSelector,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -21,9 +25,13 @@ from .const import (
     ALLEGRO_ORDERS_URL,
     ALLEGRO_START_URL,
     COMPANION_WAIT,
+    CONF_AUTO_READ,
+    CONF_AUTO_READ_DAYS,
     CONF_COOKIE,
+    CONF_DEFAULT_PICKUP_POINT,
     CONF_METHOD,
     CONF_USERNAME,
+    DEFAULT_AUTO_READ_DAYS,
     DOMAIN,
     METHOD_COMPANION,
     METHOD_COOKIE,
@@ -145,7 +153,7 @@ async def _async_test_credentials(hass, cookie: str) -> str | None:
 
 
 class AllegroOptionsFlowHandler(config_entries.OptionsFlow):
-    """Update the stored QXLSESSID cookie."""
+    """Update the stored QXLSESSID cookie and integration options."""
 
     async def async_step_init(self, user_input=None):
         """Manage the options."""
@@ -162,8 +170,22 @@ class AllegroOptionsFlowHandler(config_entries.OptionsFlow):
                     self.config_entry,
                     data={**self.config_entry.data, CONF_COOKIE: cookie},
                 )
-                return self.async_create_entry(title="", data={})
+                return self.async_create_entry(
+                    title="",
+                    data={
+                        CONF_DEFAULT_PICKUP_POINT: user_input.get(
+                            CONF_DEFAULT_PICKUP_POINT, ""
+                        ).strip(),
+                        CONF_AUTO_READ: user_input.get(CONF_AUTO_READ, False),
+                        CONF_AUTO_READ_DAYS: int(
+                            user_input.get(CONF_AUTO_READ_DAYS)
+                            or DEFAULT_AUTO_READ_DAYS
+                        ),
+                    },
+                )
             errors["base"] = "auth"
+
+        options = self.config_entry.options
 
         return self.async_show_form(
             step_id="user",
@@ -172,6 +194,23 @@ class AllegroOptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_COOKIE, default=self.config_entry.data[CONF_COOKIE]
                     ): str,
+                    vol.Optional(
+                        CONF_DEFAULT_PICKUP_POINT,
+                        default=options.get(CONF_DEFAULT_PICKUP_POINT, ""),
+                    ): str,
+                    vol.Optional(
+                        CONF_AUTO_READ, default=options.get(CONF_AUTO_READ, False)
+                    ): BooleanSelector(),
+                    vol.Optional(
+                        CONF_AUTO_READ_DAYS,
+                        default=options.get(
+                            CONF_AUTO_READ_DAYS, DEFAULT_AUTO_READ_DAYS
+                        ),
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=1, max=90, step=1, mode=NumberSelectorMode.BOX
+                        )
+                    ),
                 }
             ),
             errors=errors,
