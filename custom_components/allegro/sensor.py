@@ -6,7 +6,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -91,6 +95,7 @@ async def async_setup_entry(
                 or not description.needs_default_pickup_point
             ),
             AllegroCartSensor(coordinator),
+            AllegroPickupDeadlineSensor(coordinator),
             AllegroMessagesSensor(coordinator),
             AllegroInvoicesSensor(coordinator),
         ]
@@ -127,10 +132,15 @@ class AllegroOrdersSensor(AllegroEntity, SensorEntity):
                 order.as_attributes(
                     include_pickup=include_pickup,
                     default_pickup_point=default_point,
+                    package=self._package_for(order),
                 )
                 for order in self._orders
             ]
         }
+
+    def _package_for(self, order: Order):
+        data = self.coordinator.data
+        return data.package_for(order) if data is not None else None
 
     @property
     def _orders(self) -> list[Order]:
@@ -226,3 +236,46 @@ class AllegroInvoicesSensor(AllegroEntity, SensorEntity):
         data = self.coordinator.data
         threads = [] if data is None else data.messages.invoices
         return {"details": [t.as_attributes() for t in threads[:MAX_LISTED_THREADS]]}
+
+
+class AllegroPickupDeadlineSensor(AllegroEntity, SensorEntity):
+    """The earliest deadline for collecting a parcel that is waiting."""
+
+    _attr_translation_key = "pickup_deadline"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:timer-sand"
+
+    def __init__(self, coordinator: AllegroCoordinator) -> None:
+        """Initialize."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self._user_prefix}pickup_deadline"
+
+    @property
+    def native_value(self):
+        """Return the nearest pickup deadline, or None when nothing waits."""
+        data = self.coordinator.data
+        return None if data is None else data.next_pickup_deadline
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return every waiting parcel with its deadline, nearest first."""
+        data = self.coordinator.data
+        if data is None:
+            return {"details": []}
+        rows = []
+        for order in data.waiting_for_pickup:
+            package = data.package_for(order)
+            deadline = package.valid_to if package else None
+            rows.append(
+                {
+                    "seller": order.seller,
+                    "offers": [offer.title for offer in order.offers],
+                    "pickup_point_name": order.delivery.pickup_point_name,
+                    "pickup_point_address": order.delivery.pickup_point_address,
+                    "pickup_deadline": deadline.isoformat() if deadline else None,
+                }
+            )
+        rows.sort(
+            key=lambda row: (row["pickup_deadline"] is None, row["pickup_deadline"])
+        )
+        return {"details": rows}

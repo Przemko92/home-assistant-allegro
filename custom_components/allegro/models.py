@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import UTC, date, datetime, time, tzinfo
 from typing import Any
 
 from .messages import Messages
@@ -54,6 +55,76 @@ def _money(value: Any) -> tuple[float, str]:
     return amount, str(payload.get("currency") or "")
 
 
+def parse_deadline(value: Any, zone: tzinfo | None = None) -> datetime | None:
+    """Parse a pickup deadline: ISO date-time, plain date or epoch milliseconds.
+
+    A plain date means the end of that day in the local time zone.
+    """
+    if value in (None, "", 0):
+        return None
+    try:
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            seconds = value / 1000 if value > 10**11 else value
+            return datetime.fromtimestamp(seconds, UTC)
+        text = str(value).strip()
+        if len(text) == 10:
+            local = zone or UTC
+            return datetime.combine(date.fromisoformat(text), time(23, 59, 59), local)
+        parsed = datetime.fromisoformat(text)
+    except ValueError, OverflowError, OSError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=zone or UTC)
+
+
+@dataclass(frozen=True, slots=True)
+class Package:
+    """Tracking entry from Allegro's "Moje przesyłki" list."""
+
+    waybill: str
+    carrier_id: str | None
+    status: str | None
+    valid_to: datetime | None
+    title: str | None
+    subtitle: str | None
+    timer: Any = None
+
+    @classmethod
+    def from_api(
+        cls, item: dict[str, Any], zone: tzinfo | None = None
+    ) -> Package | None:
+        """Create a package from a `/packages` list item."""
+        delivery = _as_dict(item.get("delivery"))
+        waybill = _text(delivery.get("waybill"))
+        if waybill is None:
+            return None
+        description = _as_dict(delivery.get("description"))
+        return cls(
+            waybill=waybill,
+            carrier_id=_text(delivery.get("carrierId")),
+            status=_text(delivery.get("status")),
+            valid_to=parse_deadline(
+                _as_dict(delivery.get("pickup")).get("validTo"), zone
+            ),
+            title=_text(description.get("title")),
+            subtitle=_text(description.get("subtitle")),
+            timer=delivery.get("timer"),
+        )
+
+
+def parse_packages(
+    payload: dict[str, Any], zone: tzinfo | None = None
+) -> list[Package]:
+    """Parse the `/packages` response."""
+    packages = []
+    for item in payload.get("packages") or []:
+        package = Package.from_api(_as_dict(item), zone)
+        if package is not None:
+            packages.append(package)
+    return packages
+
+
 @dataclass(frozen=True, slots=True)
 class Offer:
     """Single offer inside an order."""
@@ -102,6 +173,7 @@ class Delivery:
     pickup_point_name: str | None
     pickup_point_description: str | None
     pickup_point_address: str | None
+    waybill_ids: tuple[str, ...] = ()
 
     @property
     def has_pickup_point(self) -> bool:
@@ -153,6 +225,11 @@ class Delivery:
             pickup_point_name=_text(point.get("name")),
             pickup_point_description=_text(point.get("description")),
             pickup_point_address=_pickup_point_address(_as_dict(point.get("address"))),
+            waybill_ids=tuple(
+                str(waybill_id)
+                for item in waybills
+                if (waybill_id := _as_dict(item).get("waybillId"))
+            ),
         )
 
 
@@ -184,7 +261,11 @@ class Order:
         )
 
     def as_attributes(
-        self, *, include_pickup: bool = False, default_pickup_point: str = ""
+        self,
+        *,
+        include_pickup: bool = False,
+        default_pickup_point: str = "",
+        package: Package | None = None,
     ) -> dict[str, Any]:
         """State attributes kept compatible with existing dashboards."""
         attributes: dict[str, Any] = {
@@ -204,6 +285,15 @@ class Order:
             is_default = self.delivery.is_pickup_point(default_pickup_point)
             if is_default is not None:
                 attributes["is_default_pickup_point"] = is_default
+        if package is not None:
+            attributes["delivery_status"] = package.status
+            attributes["delivery_description"] = package.title
+            attributes["delivery_details"] = package.subtitle
+            attributes["pickup_deadline"] = (
+                package.valid_to.isoformat() if package.valid_to else None
+            )
+            if package.timer:
+                attributes["pickup_timer"] = package.timer
         if include_pickup:
             attributes["pickup_code"] = self.delivery.pickup_code
             attributes["receiver_phone_number"] = self.delivery.receiver_phone_number
@@ -311,6 +401,22 @@ class AllegroData:
     cart: Cart
     messages: Messages = field(default_factory=Messages)
     default_pickup_point: str = ""
+    packages: tuple[Package, ...] = ()
+
+    def package_for(self, order: Order) -> Package | None:
+        """The tracking entry that belongs to the order, matched by waybill."""
+        ids = set(order.delivery.waybill_ids)
+        return next((p for p in self.packages if p.waybill in ids), None)
+
+    @property
+    def next_pickup_deadline(self) -> datetime | None:
+        """The earliest deadline among parcels waiting for pickup."""
+        deadlines = [
+            package.valid_to
+            for order in self.waiting_for_pickup
+            if (package := self.package_for(order)) and package.valid_to
+        ]
+        return min(deadlines) if deadlines else None
 
     def by_status(self, *statuses: str) -> list[Order]:
         """Orders whose primary status is one of the given values."""

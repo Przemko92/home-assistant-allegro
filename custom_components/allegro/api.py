@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from datetime import tzinfo
 from typing import Any
 from urllib.parse import quote, urlsplit
 
@@ -18,7 +19,7 @@ from .messages import (
     parse_attachments,
     parse_messages,
 )
-from .models import Cart, Order, parse_cart, parse_orders
+from .models import Cart, Order, Package, parse_cart, parse_orders, parse_packages
 
 TIMEOUT = aiohttp.ClientTimeout(total=10)
 DOWNLOAD_TIMEOUT = aiohttp.ClientTimeout(total=60)
@@ -133,6 +134,15 @@ class AllegroApiClient:
         if not isinstance(payload, dict):
             raise AllegroApiError("Unexpected orders response")
         return parse_orders(payload)
+
+    async def async_get_packages(self, zone: tzinfo | None = None) -> list[Package]:
+        """Return tracking entries, including the pickup deadline of waiting parcels."""
+        payload = await self._get(
+            "/packages", 1, public=False, base_url=ALLEGRO_EDGE_URL
+        )
+        if not isinstance(payload, dict):
+            raise AllegroApiError("Unexpected packages response")
+        return parse_packages(payload, zone)
 
     async def async_get_login(self) -> str:
         """Return the Allegro login for the current cookie."""

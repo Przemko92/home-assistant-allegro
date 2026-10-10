@@ -60,10 +60,11 @@ class AllegroCoordinator(DataUpdateCoordinator[AllegroData]):
 
     async def _async_update_data(self) -> AllegroData:
         """Fetch orders, cart and messages from Allegro."""
-        orders, cart_result, messages_result = await asyncio.gather(
+        orders, cart_result, messages_result, packages_result = await asyncio.gather(
             self.api.async_get_orders(),
             self.api.async_get_cart(),
             self.api.async_get_messages(),
+            self.api.async_get_packages(dt_util.get_default_time_zone()),
             return_exceptions=True,
         )
         if isinstance(orders, BaseException):
@@ -84,10 +85,18 @@ class AllegroCoordinator(DataUpdateCoordinator[AllegroData]):
             raise messages_result
         else:
             messages = messages_result
+        if isinstance(packages_result, AllegroApiError):
+            _LOGGER.warning("Could not refresh Allegro packages: %s", packages_result)
+            packages = self.data.packages if self.data is not None else ()
+        elif isinstance(packages_result, BaseException):
+            raise packages_result
+        else:
+            packages = tuple(packages_result)
         data = AllegroData(
             orders=orders,
             cart=cart,
             messages=messages,
+            packages=packages,
             default_pickup_point=self.default_pickup_point,
         )
         return await self._async_auto_read(data)

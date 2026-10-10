@@ -96,6 +96,9 @@
             },
             "invoices": {
                 "name": "Wiadomości z fakturą"
+            },
+            "pickup_deadline": {
+                "name": "Termin odbioru paczki"
             }
         },
         "button": {
