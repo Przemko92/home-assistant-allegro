@@ -122,10 +122,18 @@
         "unknown_account": {
             "message": "Nie znaleziono konta Allegro {entry_id}."
         },
-        "mark_read_failed": "Nie udało się oznaczyć wiadomości jako przeczytanej: {error}",
-        "download_failed": "Nie udało się pobrać załącznika wiadomości {thread_id}: {error}",
-        "no_attachment": "Ta wiadomość nie ma załącznika do pobrania.",
-        "directory_not_allowed": "Katalog {directory} jest niedozwolony. Dodaj go do allowlist_external_dirs albo użyj katalogu w konfiguracji Home Assistanta."
+        "mark_read_failed": {
+            "message": "Nie udało się oznaczyć wiadomości jako przeczytanej: {error}"
+        },
+        "download_failed": {
+            "message": "Nie udało się pobrać załącznika wiadomości {thread_id}: {error}"
+        },
+        "no_attachment": {
+            "message": "Ta wiadomość nie ma załącznika do pobrania."
+        },
+        "directory_not_allowed": {
+            "message": "Katalog {directory} jest niedozwolony. Dodaj go do allowlist_external_dirs albo użyj katalogu w konfiguracji Home Assistanta."
+        }
     },
     "services": {
         "add_to_cart": {

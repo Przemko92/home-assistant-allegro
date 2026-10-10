@@ -122,10 +122,18 @@
         "unknown_account": {
             "message": "Allegro account {entry_id} was not found."
         },
-        "mark_read_failed": "Could not mark the message as read: {error}",
-        "download_failed": "Could not download the attachment of message {thread_id}: {error}",
-        "no_attachment": "This message has no attachment to download.",
-        "directory_not_allowed": "Directory {directory} is not allowed. Add it to allowlist_external_dirs or use a directory inside the Home Assistant configuration."
+        "mark_read_failed": {
+            "message": "Could not mark the message as read: {error}"
+        },
+        "download_failed": {
+            "message": "Could not download the attachment of message {thread_id}: {error}"
+        },
+        "no_attachment": {
+            "message": "This message has no attachment to download."
+        },
+        "directory_not_allowed": {
+            "message": "Directory {directory} is not allowed. Add it to allowlist_external_dirs or use a directory inside the Home Assistant configuration."
+        }
     },
     "services": {
         "add_to_cart": {

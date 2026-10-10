@@ -25,6 +25,11 @@ DOWNLOAD_TIMEOUT = aiohttp.ClientTimeout(total=60)
 MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024
 MESSAGE_PAGES = 5
 MESSAGE_CENTER_HEADERS = {"x-message-center-mode": "default"}
+# The chat endpoint rejects requests without a content type, even for GET.
+CHAT_HEADERS = {
+    **MESSAGE_CENTER_HEADERS,
+    "Content-Type": "application/vnd.allegro.internal.v3+json",
+}
 THREAD_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 _LOGGER = logging.getLogger(__package__)
 
@@ -205,7 +210,7 @@ class AllegroApiClient:
             public=False,
             base_url=ALLEGRO_EDGE_URL,
             params={"sort": "DESC"},
-            extra_headers=MESSAGE_CENTER_HEADERS,
+            extra_headers=CHAT_HEADERS,
         )
         return parse_attachments(payload)
 
