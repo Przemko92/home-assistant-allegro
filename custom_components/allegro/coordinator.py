@@ -3,25 +3,39 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
 import logging
+from dataclasses import replace
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
-from .api import AllegroApiClient, AllegroApiError
-from .const import DOMAIN
+from .api import AllegroApiClient, AllegroApiError, AllegroAuthError
+from .const import (
+    CONF_AUTO_READ,
+    CONF_AUTO_READ_DAYS,
+    CONF_DEFAULT_PICKUP_POINT,
+    DEFAULT_AUTO_READ_DAYS,
+    DOMAIN,
+)
+from .messages import Attachment, Messages, MessageThread
 from .models import AllegroData, Cart
 
 _LOGGER = logging.getLogger(__package__)
 SCAN_INTERVAL = timedelta(minutes=30)
+MAX_AUTO_READ = 10
+MAX_BULK_READ = 50
+# A single 401/403 can be a hiccup or a bot check; several in a row mean a dead session.
+AUTH_FAILURES_BEFORE_REAUTH = 3
 
 type AllegroConfigEntry = ConfigEntry["AllegroCoordinator"]
 
 
 class AllegroCoordinator(DataUpdateCoordinator[AllegroData]):
-    """Fetch and cache Allegro orders and cart."""
+    """Fetch and cache Allegro orders, cart and messages."""
 
     config_entry: AllegroConfigEntry
 
@@ -40,18 +54,36 @@ class AllegroCoordinator(DataUpdateCoordinator[AllegroData]):
             update_interval=SCAN_INTERVAL,
         )
         self.api = client
+        self._auth_failures = 0
+        self.last_success: datetime | None = None
+
+    @property
+    def default_pickup_point(self) -> str:
+        """Code of the user's usual parcel locker, for example `WAW01A`."""
+        value = self.config_entry.options.get(CONF_DEFAULT_PICKUP_POINT) or ""
+        return str(value).strip()
 
     async def _async_update_data(self) -> AllegroData:
-        """Fetch orders and cart from Allegro."""
-        orders, cart_result = await asyncio.gather(
+        """Fetch orders, cart and messages from Allegro."""
+        orders, cart_result, messages_result, packages_result = await asyncio.gather(
             self.api.async_get_orders(),
             self.api.async_get_cart(),
+            self.api.async_get_messages(),
+            self.api.async_get_packages(dt_util.get_default_time_zone()),
             return_exceptions=True,
         )
+        if isinstance(orders, AllegroAuthError):
+            self._auth_failures += 1
+            # At startup there is no earlier data to fall back on: ask right away.
+            if self.data is None or self._auth_failures >= AUTH_FAILURES_BEFORE_REAUTH:
+                raise ConfigEntryAuthFailed(str(orders)) from orders
+            raise UpdateFailed(str(orders)) from orders
         if isinstance(orders, BaseException):
             if isinstance(orders, AllegroApiError):
                 raise UpdateFailed(str(orders)) from orders
             raise orders
+        self._auth_failures = 0
+        self.last_success = dt_util.utcnow()
         if isinstance(cart_result, AllegroApiError):
             _LOGGER.warning("Could not refresh Allegro cart: %s", cart_result)
             cart = self.data.cart if self.data is not None else Cart.empty()
@@ -59,7 +91,97 @@ class AllegroCoordinator(DataUpdateCoordinator[AllegroData]):
             raise cart_result
         else:
             cart = cart_result
-        return AllegroData(orders=orders, cart=cart)
+        if isinstance(messages_result, AllegroApiError):
+            _LOGGER.warning("Could not refresh Allegro messages: %s", messages_result)
+            messages = self.data.messages if self.data is not None else Messages()
+        elif isinstance(messages_result, BaseException):
+            raise messages_result
+        else:
+            messages = messages_result
+        if isinstance(packages_result, AllegroApiError):
+            _LOGGER.warning("Could not refresh Allegro packages: %s", packages_result)
+            packages = self.data.packages if self.data is not None else ()
+        elif isinstance(packages_result, BaseException):
+            raise packages_result
+        else:
+            packages = tuple(packages_result)
+        data = AllegroData(
+            orders=orders,
+            cart=cart,
+            messages=messages,
+            packages=packages,
+            default_pickup_point=self.default_pickup_point,
+        )
+        return await self._async_auto_read(data)
+
+    def _older_threads(self, data: AllegroData) -> list[MessageThread]:
+        """Unread automatic order messages that no longer need attention."""
+        days = float(
+            self.config_entry.options.get(CONF_AUTO_READ_DAYS) or DEFAULT_AUTO_READ_DAYS
+        )
+        return data.messages.auto_read_candidates(
+            data.active_sellers, days, dt_util.utcnow()
+        )
+
+    async def _async_auto_read(self, data: AllegroData) -> AllegroData:
+        """Mark automatic order messages as read when they are no longer useful."""
+        if not self.config_entry.options.get(CONF_AUTO_READ):
+            return data
+        candidates = self._older_threads(data)
+        read: set[str] = set()
+        for thread in candidates[:MAX_AUTO_READ]:
+            try:
+                await self.api.async_open_thread(thread.id)
+            except AllegroApiError as err:
+                _LOGGER.warning("Could not mark message as read: %s", err)
+                break
+            read.add(thread.id)
+        if not read:
+            return data
+        _LOGGER.debug("Marked %d automatic Allegro messages as read", len(read))
+        return replace(data, messages=data.messages.with_read(read))
+
+    def _apply_read(self, thread_ids: set[str]) -> None:
+        if self.data is None or not thread_ids:
+            return
+        self.async_set_updated_data(
+            replace(self.data, messages=self.data.messages.with_read(thread_ids))
+        )
+
+    async def async_open_thread(self, thread_id: str) -> list[Attachment]:
+        """Open a thread, which marks it as read, and return its attachments."""
+        attachments = await self.api.async_open_thread(thread_id)
+        self._apply_read({thread_id})
+        return attachments
+
+    async def async_mark_threads_read(self, category: str) -> int:
+        """Mark unread threads of a category as read. Returns how many were read."""
+        threads = (
+            self.data.messages.unread_in_category(category)
+            if self.data is not None
+            else []
+        )
+        read: set[str] = set()
+        try:
+            for thread in threads[:MAX_BULK_READ]:
+                await self.api.async_open_thread(thread.id)
+                read.add(thread.id)
+        finally:
+            self._apply_read(read)
+        return len(read)
+
+    async def async_mark_older_read(self) -> int:
+        """Mark older automatic order messages as read. Returns how many."""
+        if self.data is None:
+            return 0
+        read: set[str] = set()
+        try:
+            for thread in self._older_threads(self.data)[:MAX_BULK_READ]:
+                await self.api.async_open_thread(thread.id)
+                read.add(thread.id)
+        finally:
+            self._apply_read(read)
+        return len(read)
 
     async def async_add_to_cart(self, item_id: str, quantity: int = 1) -> None:
         """Add an offer to the cart and refresh cart state."""
@@ -70,5 +192,7 @@ class AllegroCoordinator(DataUpdateCoordinator[AllegroData]):
             _LOGGER.warning("Added to cart but failed to refresh cart: %s", err)
             await self.async_request_refresh()
             return
-        orders = self.data.orders if self.data is not None else []
-        self.async_set_updated_data(AllegroData(orders=orders, cart=cart))
+        if self.data is None:
+            await self.async_request_refresh()
+            return
+        self.async_set_updated_data(replace(self.data, cart=cart))

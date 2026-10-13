@@ -30,7 +30,8 @@
             "auth": "Nieprawidłowe cookie"
         },
         "abort": {
-            "companion_unavailable": "Browser Companion nie przechwycił logowania. Spróbuj ponownie albo wklej QXLSESSID."
+            "companion_unavailable": "Browser Companion nie przechwycił logowania. Spróbuj ponownie albo wklej QXLSESSID.",
+            "reauth_successful": "Ponowne logowanie zakończone powodzeniem"
         },
         "progress": {
             "companion_wait": "Otwórz Browser Companion w nowym oknie:\n\n[{companion_url}]({companion_href})\n\nZaloguj się, a potem wejdź na {orders_url}. Ten ekran zaktualizuje się po przechwyceniu QXLSESSID."
@@ -40,7 +41,15 @@
         "step": {
             "user": {
                 "data": {
-                    "QXLSESSID": "Wartość QXLSESSID"
+                    "QXLSESSID": "Wartość QXLSESSID",
+                    "default_pickup_point": "Domyślny punkt odbioru",
+                    "auto_read_messages": "Oznaczaj automatyczne wiadomości o zamówieniach jako przeczytane",
+                    "auto_read_days": "Oznacz jako przeczytane po (dniach)"
+                },
+                "data_description": {
+                    "default_pickup_point": "Kod Twojego zwykłego paczkomatu, na przykład WAW01A. Służy do oznaczania paczek czekających w innym punkcie.",
+                    "auto_read_messages": "Oznacza automatyczne wiadomości sklepów (zamówienie przyjęte, w trakcie kompletowania itp.) jako przeczytane, gdy sprzedawca nie ma już zamówienia w drodze albo wiadomość jest wystarczająco stara. Faktury i wiadomości od osób nigdy nie są ruszane.",
+                    "auto_read_days": "Wiek automatycznej wiadomości, po którym zostanie oznaczona jako przeczytana, nawet gdy zamówienie jest jeszcze w drodze."
                 }
             }
         },
@@ -53,6 +62,13 @@
             "options": {
                 "companion": "Dodatek Browser Companion",
                 "cookie": "Wklej QXLSESSID"
+            }
+        },
+        "message_category": {
+            "options": {
+                "order_status": "Automatyczne wiadomości o zamówieniach",
+                "invoice": "Faktury",
+                "other": "Pozostałe"
             }
         }
     },
@@ -72,6 +88,34 @@
             },
             "cart": {
                 "name": "Koszyk"
+            },
+            "waiting_other_pickup_point": {
+                "name": "Czeka w innym punkcie odbioru"
+            },
+            "messages_unread": {
+                "name": "Nieprzeczytane wiadomości"
+            },
+            "invoices": {
+                "name": "Wiadomości z fakturą"
+            },
+            "pickup_deadline": {
+                "name": "Termin odbioru paczki"
+            },
+            "last_update": {
+                "name": "Ostatnie udane odświeżenie"
+            }
+        },
+        "button": {
+            "mark_automatic_read": {
+                "name": "Oznacz automatyczne wiadomości jako przeczytane"
+            },
+            "mark_older_read": {
+                "name": "Oznacz starsze wiadomości jako przeczytane"
+            }
+        },
+        "todo": {
+            "messages_todo": {
+                "name": "Wiadomości do przeczytania"
             }
         }
     },
@@ -87,6 +131,18 @@
         },
         "unknown_account": {
             "message": "Nie znaleziono konta Allegro {entry_id}."
+        },
+        "mark_read_failed": {
+            "message": "Nie udało się oznaczyć wiadomości jako przeczytanej: {error}"
+        },
+        "download_failed": {
+            "message": "Nie udało się pobrać załącznika wiadomości {thread_id}: {error}"
+        },
+        "no_attachment": {
+            "message": "Ta wiadomość nie ma załącznika do pobrania."
+        },
+        "directory_not_allowed": {
+            "message": "Katalog {directory} jest niedozwolony. Dodaj go do allowlist_external_dirs albo użyj katalogu w konfiguracji Home Assistanta."
         }
     },
     "services": {
@@ -105,6 +161,52 @@
                 "config_entry_id": {
                     "name": "Konto",
                     "description": "Konto Allegro, gdy skonfigurowano więcej niż jedno."
+                }
+            }
+        },
+        "mark_message_read": {
+            "name": "Oznacz wiadomość jako przeczytaną",
+            "description": "Otwiera wątek wiadomości, dzięki czemu Allegro oznacza go jako przeczytany.",
+            "fields": {
+                "thread_id": {
+                    "name": "ID wątku",
+                    "description": "ID wątku wiadomości, widoczne jako thread_id w atrybutach sensora."
+                },
+                "config_entry_id": {
+                    "name": "Konto",
+                    "description": "Konto Allegro do użycia, gdy skonfigurowano więcej niż jedno."
+                }
+            }
+        },
+        "mark_messages_read": {
+            "name": "Oznacz wiadomości jako przeczytane",
+            "description": "Oznacza jako przeczytane wszystkie nieprzeczytane wątki jednej kategorii (do 50 naraz).",
+            "fields": {
+                "category": {
+                    "name": "Kategoria",
+                    "description": "order_status: automatyczne wiadomości sklepów, invoice: wiadomości z fakturą, other: pozostałe."
+                },
+                "config_entry_id": {
+                    "name": "Konto",
+                    "description": "Konto Allegro do użycia, gdy skonfigurowano więcej niż jedno."
+                }
+            }
+        },
+        "download_invoice": {
+            "name": "Pobierz fakturę",
+            "description": "Pobiera załączniki wątku wiadomości, na przykład fakturę w PDF, do katalogu. Otwarcie wątku oznacza go jako przeczytany.",
+            "fields": {
+                "thread_id": {
+                    "name": "ID wątku",
+                    "description": "ID wątku wiadomości, widoczne jako thread_id w atrybutach sensora faktur."
+                },
+                "directory": {
+                    "name": "Katalog",
+                    "description": "Gdzie zapisać pliki. Domyślnie allegro_invoices w katalogu konfiguracji Home Assistanta."
+                },
+                "config_entry_id": {
+                    "name": "Konto",
+                    "description": "Konto Allegro do użycia, gdy skonfigurowano więcej niż jedno."
                 }
             }
         }
