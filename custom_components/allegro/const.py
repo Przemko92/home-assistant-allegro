@@ -2,7 +2,7 @@
 
 NAME = "Allegro buyer"
 DOMAIN = "allegro"
-VERSION = "0.1.3"
+VERSION = "0.2.0"
 ATTRIBUTION = "Data provided by http://api.allegro.pl"
 ISSUE_URL = "https://github.com/Przemko92/home-assistant-allegro"
 
@@ -11,13 +11,30 @@ ICON_TRANSIT = "mdi:truck-delivery"
 ICON_DELIVERY = "mdi:map-marker-radius-outline"
 ICON_READY = "mdi:archive-check"
 ICON_CART = "mdi:cart"
+ICON_MESSAGES = "mdi:email-alert"
+ICON_INVOICE = "mdi:file-document-outline"
+ICON_OTHER_POINT = "mdi:map-marker-alert"
+ICON_MARK_READ = "mdi:email-open-multiple"
+ICON_MARK_OLDER_READ = "mdi:email-sync-outline"
 
 SERVICE_ADD_TO_CART = "add_to_cart"
 ATTR_ITEM_ID = "item_id"
 ATTR_QUANTITY = "quantity"
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 
-PLATFORMS = ["sensor"]
+SERVICE_MARK_MESSAGE_READ = "mark_message_read"
+SERVICE_MARK_MESSAGES_READ = "mark_messages_read"
+SERVICE_DOWNLOAD_INVOICE = "download_invoice"
+ATTR_THREAD_ID = "thread_id"
+ATTR_CATEGORY = "category"
+ATTR_DIRECTORY = "directory"
+
+PLATFORMS = ["sensor", "button", "todo"]
+
+CONF_DEFAULT_PICKUP_POINT = "default_pickup_point"
+CONF_AUTO_READ = "auto_read_messages"
+CONF_AUTO_READ_DAYS = "auto_read_days"
+DEFAULT_AUTO_READ_DAYS = 7
 
 CONF_COOKIE = "QXLSESSID"
 CONF_USERNAME = "user_name"

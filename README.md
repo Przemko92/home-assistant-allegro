@@ -9,7 +9,7 @@
 [![Validate][validate-shield]][validate]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
-Custom Home Assistant integration for [Allegro](https://allegro.pl) buyer accounts. It tracks orders and the shopping cart, and can add offers to the cart.
+Custom Home Assistant integration for [Allegro](https://allegro.pl) buyer accounts. It tracks orders, the shopping cart and seller messages, and can add offers to the cart, mark messages as read and download invoices sent in messages.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Przemko92&repository=home-assistant-allegro&category=integration)
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=allegro)
@@ -22,9 +22,34 @@ Custom Home Assistant integration for [Allegro](https://allegro.pl) buyer accoun
 | `sensor.allegro_in_delivery` | Orders in `IN_DELIVERY` status |
 | `sensor.allegro_in_transit` | Orders in `IN_TRANSIT` status |
 | `sensor.allegro_waiting_for_pickup` | Orders in `AVAILABLE_FOR_PICKUP` status |
+| `sensor.allegro_pickup_deadline` | Earliest deadline for collecting a waiting parcel (from Allegro's "Moje przesyłki"); every waiting parcel with its deadline is in the attributes |
 | `sensor.allegro_cart` | Number of items in the shopping cart (details in attributes) |
+| `sensor.allegro_waiting_in_another_pickup_point` | Parcels waiting in a pickup point other than your default one (only when a default pickup point is set) |
+| `sensor.allegro_unread_messages` | Unread message threads. `details` lists the unread threads (`thread_id`, `seller`, `category`, `timestamp`, `preview`), `automatic` counts automatic shop messages |
+| `sensor.allegro_invoice_messages` | Recent message threads in which a seller sent an invoice (details in attributes) |
+| `todo.allegro_messages_to_read` | Unread message threads as a checklist: checking an item marks the thread as read |
+| `button.allegro_mark_automatic_messages_as_read` | Marks unread automatic order messages as read |
+| `button.allegro_mark_older_messages_as_read` | Marks unread automatic order messages as read when they are older than the configured days, or the seller has no order on its way (the same rule as the automatic option) |
+
+Order details also carry `pickup_deadline`, `delivery_status` and `delivery_description` when Allegro lists the parcel under "Moje przesyłki".
 
 Order details include `pickup_point_name`, `pickup_point_description`, and `pickup_point_address` when Allegro returns a parcel locker or other pickup point. The address is the street, postal code, and city of that point.
+
+When a **default pickup point** is set (see [Options](#options)), each order with a pickup point also gets `is_default_pickup_point`, and `sensor.allegro_waiting_in_another_pickup_point` counts parcels that wait somewhere else. The code is matched against the pickup point name, so `WAW01A` matches `Paczkomat WAW01A`.
+
+## Messages and invoices
+
+Unread messages are read from the Allegro message center (the most recent 100 threads are scanned). Every thread gets a category, based on its text:
+
+| Category | Meaning |
+| -- | -- |
+| `order_status` | Automatic shop messages such as "Zamówienie jest realizowane", "Twoje zamówienie trafiło do realizacji", "W trakcie kompletowania" or "Dziękujemy za zakupy" |
+| `invoice` | The seller sent an invoice or sales document ("w załączeniu przesyłamy fakturę", "Faktura VAT", a link to a sales document) |
+| `other` | Everything else, including questions, returns, complaints and cancellations |
+
+Only `order_status` messages are ever marked as read automatically. Invoices and `other` messages are never touched. The templates live in `ORDER_STATUS_PATTERNS` and `INVOICE_PATTERNS` in `custom_components/allegro/messages.py`; add a pattern there to teach the integration a new shop.
+
+Allegro marks a thread as read when it is opened, so reading a message here means opening it through the API. This is also why `allegro.download_invoice` marks the thread as read.
 
 ## Services
 
@@ -38,7 +63,32 @@ Add an offer to the Allegro shopping cart. On success the cart sensor is refresh
 | `quantity` | Pieces to add (default: 1) |
 | `config_entry_id` | Account to use when multiple Allegro accounts are configured |
 
-Example URL (`item_id` is the bold `offerId`):
+### `allegro.mark_message_read`
+
+Mark one message thread as read. `thread_id` is shown in the attributes of `sensor.allegro_unread_messages`.
+
+### `allegro.mark_messages_read`
+
+Mark all unread threads of a category as read (up to 50 at a time). `category` is `order_status` (default), `invoice` or `other`. Returns `marked_read` when called with a response.
+
+### `allegro.download_invoice`
+
+Download the attachments of a thread, for example an invoice PDF, and return the saved paths.
+
+| Parameter | Description |
+| -- | -- |
+| `thread_id` | Thread to download from (required), see `sensor.allegro_invoice_messages` |
+| `directory` | Where to save the files. Defaults to `allegro_invoices` in the Home Assistant configuration directory. Other directories must be listed in `allowlist_external_dirs` |
+
+Attachments are not public links: they need your Allegro session, so they are downloaded by Home Assistant and not linked from a dashboard.
+
+```yaml
+service: allegro.download_invoice
+data:
+  thread_id: "AbCdEf0123456789AbCdEf0123456789AbC"
+```
+
+Example URL for `add_to_cart` (`item_id` is the bold `offerId`):
 
 https://allegro.pl/produkt/kawa-ziarnista-100-arabica-west-caffee-brazil-monte-carmelo-1000-g-c7e0acba-5b98-4f99-969d-5e85580b95c6?offerId=**15070058532**
 
@@ -76,6 +126,16 @@ data:
 | `user_name` | Optional value for multiple instances |
 
 [Browser Companion](https://github.com/Przemko92/homeassistant-browser-companion) is optional. Without it, paste `QXLSESSID` from the browser.
+
+### Options
+
+Open the integration and choose **Configure**:
+
+| Option | Description |
+| -- | -- |
+| Default pickup point | Code of your usual parcel locker, for example `WAW01A` |
+| Mark automatic order messages as read | Off by default. When on, `order_status` messages are marked as read once the seller has no order on its way, or the message is older than the number of days below |
+| Mark as read after (days) | Default: 7 |
 
 Minimum Home Assistant version: **2026.8.0**.
 

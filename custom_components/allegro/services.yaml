@@ -16,3 +16,44 @@ add_to_cart:
       selector:
         config_entry:
           integration: allegro
+mark_message_read:
+  fields:
+    thread_id:
+      required: true
+      example: "AbCdEf0123456789AbCdEf0123456789AbC"
+      selector:
+        text:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: allegro
+mark_messages_read:
+  fields:
+    category:
+      default: order_status
+      selector:
+        select:
+          translation_key: message_category
+          options:
+            - order_status
+            - invoice
+            - other
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: allegro
+download_invoice:
+  fields:
+    thread_id:
+      required: true
+      example: "AbCdEf0123456789AbCdEf0123456789AbC"
+      selector:
+        text:
+    directory:
+      example: "/config/allegro_invoices"
+      selector:
+        text:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: allegro

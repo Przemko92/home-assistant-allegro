@@ -30,7 +30,8 @@
             "auth": "Wrong cookie value"
         },
         "abort": {
-            "companion_unavailable": "Browser Companion did not capture the login. Try again or paste QXLSESSID."
+            "companion_unavailable": "Browser Companion did not capture the login. Try again or paste QXLSESSID.",
+            "reauth_successful": "Re-authentication was successful"
         },
         "progress": {
             "companion_wait": "Open Browser Companion in a new window:\n\n[{companion_url}]({companion_href})\n\nSign in, then open {orders_url}. This screen updates when QXLSESSID is captured."
@@ -40,7 +41,15 @@
         "step": {
             "user": {
                 "data": {
-                    "QXLSESSID": "Cookie QXLSESSID value"
+                    "QXLSESSID": "Cookie QXLSESSID value",
+                    "default_pickup_point": "Default pickup point",
+                    "auto_read_messages": "Mark automatic order messages as read",
+                    "auto_read_days": "Mark as read after (days)"
+                },
+                "data_description": {
+                    "default_pickup_point": "Code of your usual parcel locker, for example WAW01A. Used to flag parcels waiting in a different pickup point.",
+                    "auto_read_messages": "Marks automatic shop messages (order received, being packed, and similar) as read once the seller has no order on its way or the message is old enough. Invoices and personal messages are never touched.",
+                    "auto_read_days": "Age of an automatic message after which it is marked as read even if an order is still on its way."
                 }
             }
         },
@@ -53,6 +62,13 @@
             "options": {
                 "companion": "Browser Companion add-on",
                 "cookie": "Paste QXLSESSID"
+            }
+        },
+        "message_category": {
+            "options": {
+                "order_status": "Automatic order messages",
+                "invoice": "Invoices",
+                "other": "Other"
             }
         }
     },
@@ -72,6 +88,34 @@
             },
             "cart": {
                 "name": "Cart"
+            },
+            "waiting_other_pickup_point": {
+                "name": "Waiting in another pickup point"
+            },
+            "messages_unread": {
+                "name": "Unread messages"
+            },
+            "invoices": {
+                "name": "Invoice messages"
+            },
+            "pickup_deadline": {
+                "name": "Pickup deadline"
+            },
+            "last_update": {
+                "name": "Last successful update"
+            }
+        },
+        "button": {
+            "mark_automatic_read": {
+                "name": "Mark automatic messages as read"
+            },
+            "mark_older_read": {
+                "name": "Mark older messages as read"
+            }
+        },
+        "todo": {
+            "messages_todo": {
+                "name": "Messages to read"
             }
         }
     },
@@ -87,6 +131,18 @@
         },
         "unknown_account": {
             "message": "Allegro account {entry_id} was not found."
+        },
+        "mark_read_failed": {
+            "message": "Could not mark the message as read: {error}"
+        },
+        "download_failed": {
+            "message": "Could not download the attachment of message {thread_id}: {error}"
+        },
+        "no_attachment": {
+            "message": "This message has no attachment to download."
+        },
+        "directory_not_allowed": {
+            "message": "Directory {directory} is not allowed. Add it to allowlist_external_dirs or use a directory inside the Home Assistant configuration."
         }
     },
     "services": {
@@ -101,6 +157,52 @@
                 "quantity": {
                     "name": "Quantity",
                     "description": "Number of pieces to add."
+                },
+                "config_entry_id": {
+                    "name": "Account",
+                    "description": "Allegro account to use when more than one is configured."
+                }
+            }
+        },
+        "mark_message_read": {
+            "name": "Mark message as read",
+            "description": "Open a message thread so that Allegro marks it as read.",
+            "fields": {
+                "thread_id": {
+                    "name": "Thread ID",
+                    "description": "Message thread ID, shown as thread_id in the sensor attributes."
+                },
+                "config_entry_id": {
+                    "name": "Account",
+                    "description": "Allegro account to use when more than one is configured."
+                }
+            }
+        },
+        "mark_messages_read": {
+            "name": "Mark messages as read",
+            "description": "Mark all unread message threads of one category as read (up to 50 at a time).",
+            "fields": {
+                "category": {
+                    "name": "Category",
+                    "description": "order_status: automatic shop messages, invoice: messages with an invoice, other: everything else."
+                },
+                "config_entry_id": {
+                    "name": "Account",
+                    "description": "Allegro account to use when more than one is configured."
+                }
+            }
+        },
+        "download_invoice": {
+            "name": "Download invoice",
+            "description": "Download the attachments of a message thread, for example an invoice PDF, into a directory. Opening the thread marks it as read.",
+            "fields": {
+                "thread_id": {
+                    "name": "Thread ID",
+                    "description": "Message thread ID, shown as thread_id in the invoice sensor attributes."
+                },
+                "directory": {
+                    "name": "Directory",
+                    "description": "Where to save the files. Defaults to allegro_invoices in the Home Assistant configuration directory."
                 },
                 "config_entry_id": {
                     "name": "Account",
