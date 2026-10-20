@@ -143,6 +143,9 @@
         },
         "directory_not_allowed": {
             "message": "Katalog {directory} jest niedozwolony. Dodaj go do allowlist_external_dirs albo użyj katalogu w konfiguracji Home Assistanta."
+        },
+        "pickup_not_found": {
+            "message": "Żadne zamówienie nie pasuje do tego sprzedawcy ani numeru przesyłki."
         }
     },
     "services": {
@@ -203,6 +206,24 @@
                 "directory": {
                     "name": "Katalog",
                     "description": "Gdzie zapisać pliki. Domyślnie allegro_invoices w katalogu konfiguracji Home Assistanta."
+                },
+                "config_entry_id": {
+                    "name": "Konto",
+                    "description": "Konto Allegro do użycia, gdy skonfigurowano więcej niż jedno."
+                }
+            }
+        },
+        "get_pickup_code": {
+            "name": "Pobierz kod odbioru",
+            "description": "Zwraca kod odbioru paczki, numer telefonu odbiorcy i kod QR. Te wartości nie są zapisywane w sensorach.",
+            "fields": {
+                "seller": {
+                    "name": "Sprzedawca",
+                    "description": "Login sprzedawcy, taki jak w sensorze zamówień. Puste pole zwraca każdą otwartą paczkę, która ma już kod."
+                },
+                "waybill": {
+                    "name": "Numer przesyłki",
+                    "description": "Numer nadania jednej paczki."
                 },
                 "config_entry_id": {
                     "name": "Konto",
