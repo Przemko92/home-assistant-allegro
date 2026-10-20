@@ -57,3 +57,17 @@ download_invoice:
       selector:
         config_entry:
           integration: allegro
+get_pickup_code:
+  fields:
+    seller:
+      example: "seller_login"
+      selector:
+        text:
+    waybill:
+      example: "623456789012345678901234"
+      selector:
+        text:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: allegro

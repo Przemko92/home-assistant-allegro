@@ -33,6 +33,8 @@ Custom Home Assistant integration for [Allegro](https://allegro.pl) buyer accoun
 
 Order details also carry `pickup_deadline`, `delivery_status` and `delivery_description` when Allegro lists the parcel under "Moje przesyłki".
 
+Call `allegro.get_pickup_code` for the pickup code, receiver phone number and QR code. The service returns them only in its response, so the locker codes stay out of the state machine, the recorder and dashboards.
+
 Order details include `pickup_point_name`, `pickup_point_description`, and `pickup_point_address` when Allegro returns a parcel locker or other pickup point. The address is the street, postal code, and city of that point.
 
 When a **default pickup point** is set (see [Options](#options)), each order with a pickup point also gets `is_default_pickup_point`, and `sensor.allegro_waiting_in_another_pickup_point` counts parcels that wait somewhere else. The code is matched against the pickup point name, so `WAW01A` matches `Paczkomat WAW01A`.
@@ -70,6 +72,27 @@ Mark one message thread as read. `thread_id` is shown in the attributes of `sens
 ### `allegro.mark_messages_read`
 
 Mark all unread threads of a category as read (up to 50 at a time). `category` is `order_status` (default), `invoice` or `other`. Returns `marked_read` when called with a response.
+
+### `allegro.get_pickup_code`
+
+Return the pickup code, receiver phone number and QR code for parcels already fetched by the integration. The values come back in the service response.
+
+| Parameter | Description |
+| -- | -- |
+| `seller` | Seller login, as shown in the order sensor. Optional. Without `seller` and `waybill`, every open parcel that already has a code is returned |
+| `waybill` | Tracking number of one parcel. Optional. Together with `seller`, both have to match |
+| `config_entry_id` | Account to use when multiple Allegro accounts are configured |
+
+A seller or waybill searches every cached order, including delivered ones. An unknown filter is an error.
+
+```yaml
+service: allegro.get_pickup_code
+data:
+  seller: "seller_login"
+response_variable: pickup
+```
+
+`pickup.orders[0].pickup_code`, `receiver_phone_number` and `qr_code` are the secrets. Each row also has `seller`, `offers`, `waybills`, `order_id` and `pickup_point_name`.
 
 ### `allegro.download_invoice`
 

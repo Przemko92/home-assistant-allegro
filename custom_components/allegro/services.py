@@ -23,10 +23,13 @@ from .const import (
     ATTR_DIRECTORY,
     ATTR_ITEM_ID,
     ATTR_QUANTITY,
+    ATTR_SELLER,
     ATTR_THREAD_ID,
+    ATTR_WAYBILL,
     DOMAIN,
     SERVICE_ADD_TO_CART,
     SERVICE_DOWNLOAD_INVOICE,
+    SERVICE_GET_PICKUP_CODE,
     SERVICE_MARK_MESSAGE_READ,
     SERVICE_MARK_MESSAGES_READ,
 )
@@ -67,6 +70,17 @@ SERVICE_DOWNLOAD_INVOICE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_THREAD_ID): THREAD_ID_SCHEMA,
         vol.Optional(ATTR_DIRECTORY): cv.string,
+        vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    }
+)
+SERVICE_GET_PICKUP_CODE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_SELLER): vol.All(
+            vol.Coerce(str), str.strip, vol.Length(min=1)
+        ),
+        vol.Optional(ATTR_WAYBILL): vol.All(
+            vol.Coerce(str), str.strip, vol.Length(min=1)
+        ),
         vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
     }
 )
@@ -152,6 +166,23 @@ def async_setup_services(hass: HomeAssistant) -> None:
         paths = await hass.async_add_executor_job(_write_files, directory, files)
         return {"files": paths} if call.return_response else None
 
+    async def _get_pickup_code(call: ServiceCall) -> ServiceResponse:
+        coordinator = _async_get_coordinator(hass, call.data.get(ATTR_CONFIG_ENTRY_ID))
+        seller = call.data.get(ATTR_SELLER, "")
+        waybill = call.data.get(ATTR_WAYBILL, "")
+        data = coordinator.data
+        details = (
+            data.pickup_details(seller=seller, waybill=waybill)
+            if data is not None
+            else []
+        )
+        if (seller or waybill) and not details:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="pickup_not_found",
+            )
+        return {"orders": details}
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_ADD_TO_CART,
@@ -178,6 +209,13 @@ def async_setup_services(hass: HomeAssistant) -> None:
         _download_invoice,
         schema=SERVICE_DOWNLOAD_INVOICE_SCHEMA,
         supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_PICKUP_CODE,
+        _get_pickup_code,
+        schema=SERVICE_GET_PICKUP_CODE_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
     )
 
 
