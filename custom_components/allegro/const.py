@@ -25,9 +25,12 @@ ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 SERVICE_MARK_MESSAGE_READ = "mark_message_read"
 SERVICE_MARK_MESSAGES_READ = "mark_messages_read"
 SERVICE_DOWNLOAD_INVOICE = "download_invoice"
+SERVICE_GET_PICKUP_CODE = "get_pickup_code"
 ATTR_THREAD_ID = "thread_id"
 ATTR_CATEGORY = "category"
 ATTR_DIRECTORY = "directory"
+ATTR_SELLER = "seller"
+ATTR_WAYBILL = "waybill"
 
 PLATFORMS = ["sensor", "button", "todo"]
 

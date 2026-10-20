@@ -176,6 +176,11 @@ class Delivery:
     waybill_ids: tuple[str, ...] = ()
 
     @property
+    def has_pickup_secret(self) -> bool:
+        """Return whether this delivery carries a locker-opening secret."""
+        return any((self.pickup_code, self.receiver_phone_number, self.qr_code))
+
+    @property
     def has_pickup_point(self) -> bool:
         """Return whether Allegro sent a locker or pickup point."""
         return any(
@@ -260,14 +265,26 @@ class Order:
             delivery=Delivery.from_api(item.get("delivery")),
         )
 
+    def as_pickup(self) -> dict[str, Any]:
+        """Pickup secrets for a service response. Never copied onto an entity."""
+        return {
+            "order_id": self.order_id,
+            "seller": self.seller,
+            "offers": [offer.title for offer in self.offers],
+            "waybills": list(self.delivery.waybill_ids),
+            "pickup_point_name": self.delivery.pickup_point_name,
+            "pickup_code": self.delivery.pickup_code,
+            "receiver_phone_number": self.delivery.receiver_phone_number,
+            "qr_code": self.delivery.qr_code,
+        }
+
     def as_attributes(
         self,
         *,
-        include_pickup: bool = False,
         default_pickup_point: str = "",
         package: Package | None = None,
     ) -> dict[str, Any]:
-        """State attributes kept compatible with existing dashboards."""
+        """State attributes. Pickup secrets are omitted on purpose."""
         attributes: dict[str, Any] = {
             "Seller": self.seller,
             "Status": self.status,
@@ -294,10 +311,6 @@ class Order:
             )
             if package.timer:
                 attributes["pickup_timer"] = package.timer
-        if include_pickup:
-            attributes["pickup_code"] = self.delivery.pickup_code
-            attributes["receiver_phone_number"] = self.delivery.receiver_phone_number
-            attributes["qr_code"] = self.delivery.qr_code
         return attributes
 
 
@@ -402,6 +415,32 @@ class AllegroData:
     messages: Messages = field(default_factory=Messages)
     default_pickup_point: str = ""
     packages: tuple[Package, ...] = ()
+
+    def pickup_details(
+        self, *, seller: str = "", waybill: str = ""
+    ) -> list[dict[str, Any]]:
+        """Pickup secrets for open orders, or for every order a filter names.
+
+        Without a filter, only orders that are still open and already have a code,
+        phone number or QR are returned. A seller or waybill searches every cached
+        order, including delivered ones and ones that have no code yet.
+        """
+        seller_key = seller.strip().casefold()
+        waybill_key = waybill.strip()
+        filtered = bool(seller_key or waybill_key)
+        details: list[dict[str, Any]] = []
+        for order in self.orders:
+            if seller_key and order.seller.casefold() != seller_key:
+                continue
+            if waybill_key and waybill_key not in order.delivery.waybill_ids:
+                continue
+            if not filtered and (
+                order.status in COMPLETED_STATUSES
+                or not order.delivery.has_pickup_secret
+            ):
+                continue
+            details.append(order.as_pickup())
+        return details
 
     def package_for(self, order: Order) -> Package | None:
         """The tracking entry that belongs to the order, matched by waybill."""

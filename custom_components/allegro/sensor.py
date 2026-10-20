@@ -38,7 +38,6 @@ class AllegroSensorDescription(SensorEntityDescription):
     """Description of an Allegro orders sensor."""
 
     orders_fn: Callable[[AllegroData], list[Order]]
-    include_pickup: bool = False
     needs_default_pickup_point: bool = False
 
 
@@ -48,21 +47,18 @@ SENSORS: tuple[AllegroSensorDescription, ...] = (
         translation_key="in_progress",
         icon=ICON_WAITING,
         orders_fn=lambda data: data.not_delivered,
-        include_pickup=True,
     ),
     AllegroSensorDescription(
         key="waiting_for_pickup",
         translation_key="waiting_for_pickup",
         icon=ICON_READY,
         orders_fn=lambda data: data.waiting_for_pickup,
-        include_pickup=True,
     ),
     AllegroSensorDescription(
         key="waiting_other_pickup_point",
         translation_key="waiting_other_pickup_point",
         icon=ICON_OTHER_POINT,
         orders_fn=lambda data: data.waiting_other_pickup_point,
-        include_pickup=True,
         needs_default_pickup_point=True,
     ),
     AllegroSensorDescription(
@@ -127,12 +123,10 @@ class AllegroOrdersSensor(AllegroEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, list[dict[str, Any]]]:
         """Return order details for dashboards."""
-        include_pickup = self.entity_description.include_pickup
         default_point = self.coordinator.default_pickup_point
         return {
             "details": [
                 order.as_attributes(
-                    include_pickup=include_pickup,
                     default_pickup_point=default_point,
                     package=self._package_for(order),
                 )

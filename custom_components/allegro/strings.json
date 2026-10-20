@@ -143,6 +143,9 @@
         },
         "directory_not_allowed": {
             "message": "Directory {directory} is not allowed. Add it to allowlist_external_dirs or use a directory inside the Home Assistant configuration."
+        },
+        "pickup_not_found": {
+            "message": "No order matches this seller or waybill."
         }
     },
     "services": {
@@ -203,6 +206,24 @@
                 "directory": {
                     "name": "Directory",
                     "description": "Where to save the files. Defaults to allegro_invoices in the Home Assistant configuration directory."
+                },
+                "config_entry_id": {
+                    "name": "Account",
+                    "description": "Allegro account to use when more than one is configured."
+                }
+            }
+        },
+        "get_pickup_code": {
+            "name": "Get pickup code",
+            "description": "Return the parcel pickup code, receiver phone number and QR code. These values are not stored on the sensors.",
+            "fields": {
+                "seller": {
+                    "name": "Seller",
+                    "description": "Seller login, as shown on the order sensor. Leave empty to return every open parcel that already has a code."
+                },
+                "waybill": {
+                    "name": "Waybill",
+                    "description": "Tracking number of one parcel."
                 },
                 "config_entry_id": {
                     "name": "Account",

@@ -3,6 +3,7 @@
 from datetime import UTC, datetime, timedelta
 
 from custom_components.allegro.models import (
+    STATUS_DELIVERED,
     AllegroData,
     Cart,
     Package,
@@ -11,13 +12,23 @@ from custom_components.allegro.models import (
     parse_packages,
 )
 
+SECRET_KEYS = ("pickup_code", "receiver_phone_number", "qr_code")
 
-def myorder(seller, status, waybill=None, point=None):
+
+def myorder(seller, status, waybill=None, point=None, code=None, phone=None, qr=None):
     delivery = {}
+    bill = {}
     if waybill:
-        delivery["waybillsData"] = {
-            "waybills": [{"waybillId": waybill, "carrier": {"url": "https://t/x"}}]
+        bill["waybillId"] = waybill
+        bill["carrier"] = {"url": "https://t/x"}
+    if any(value is not None for value in (code, phone, qr)):
+        bill["pickupCode"] = {
+            "code": code,
+            "receiverPhoneNumber": phone,
+            "qrCode": qr,
         }
+    if bill:
+        delivery["waybillsData"] = {"waybills": [bill]}
     if point:
         delivery["generalDelivery"] = {
             "id": "1",
@@ -107,6 +118,77 @@ def test_old_unmatched_deadlines_are_ignored():
         packages=(Package("WX", None, None, past, None, None),),
     )
     assert data.next_pickup_deadline is None
+
+
+def orders_with_codes():
+    return parse_orders(
+        {
+            "orderGroups": [
+                {
+                    "groupId": "g1",
+                    "myorders": [
+                        myorder(
+                            "shop_a",
+                            "AVAILABLE_FOR_PICKUP",
+                            "W1",
+                            "Paczkomat AAA01A",
+                            code="111",
+                            phone="500100100",
+                            qr="qr-a",
+                        ),
+                        myorder(
+                            "shop_b",
+                            "IN_TRANSIT",
+                            "W2",
+                            code="222",
+                            phone="500100200",
+                            qr="qr-b",
+                        ),
+                        myorder(
+                            "shop_c",
+                            STATUS_DELIVERED,
+                            "W3",
+                            code="333",
+                            phone="500100300",
+                            qr="qr-c",
+                        ),
+                        myorder("shop_d", "PAID", "W4"),
+                    ],
+                }
+            ]
+        }
+    )
+
+
+def test_pickup_secrets_stay_out_of_state_attributes():
+    order = orders_with_codes()[0]
+    assert order.delivery.pickup_code == "111"
+    assert order.delivery.receiver_phone_number == "500100100"
+    assert order.delivery.qr_code == "qr-a"
+    assert order.delivery.has_pickup_secret
+    attrs = order.as_attributes()
+    assert not set(SECRET_KEYS) & attrs.keys()
+    pickup = order.as_pickup()
+    assert pickup["pickup_code"] == "111"
+    assert pickup["receiver_phone_number"] == "500100100"
+    assert pickup["qr_code"] == "qr-a"
+    assert pickup["seller"] == "shop_a"
+    assert pickup["waybills"] == ["W1"]
+    assert pickup["pickup_point_name"] == "Paczkomat AAA01A"
+
+
+def test_pickup_details_filter():
+    data = AllegroData(orders=orders_with_codes(), cart=Cart.empty())
+    assert [row["seller"] for row in data.pickup_details()] == ["shop_a", "shop_b"]
+    assert [row["seller"] for row in data.pickup_details(seller=" Shop_A ")] == [
+        "shop_a"
+    ]
+    assert data.pickup_details(waybill=" W3 ")[0]["pickup_code"] == "333"
+    assert data.pickup_details(seller="shop_a", waybill="W1")[0]["qr_code"] == "qr-a"
+    assert data.pickup_details(seller="shop_a", waybill="W2") == []
+    assert data.pickup_details(seller="shop_d")[0]["pickup_code"] is None
+    assert data.pickup_details(seller="missing") == []
+    assert data.pickup_details(waybill="missing") == []
 
 
 def test_deadline_formats_and_package_list():
