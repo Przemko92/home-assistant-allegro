@@ -11,6 +11,8 @@
 
 Custom Home Assistant integration for [Allegro](https://allegro.pl) buyer accounts. It tracks orders, the shopping cart and seller messages, and can add offers to the cart, mark messages as read and download invoices sent in messages.
 
+<p><font color="red"><strong>Breaking change (0.3.0):</strong> the pickup code, receiver phone number and QR code are no longer sensor attributes. Call <code>allegro.get_pickup_code</code> to read them.</font></p>
+
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Przemko92&repository=home-assistant-allegro&category=integration)
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=allegro)
 
