@@ -128,14 +128,18 @@ data:
 
 ### HACS (recommended)
 
-1. Open HACS
-2. Use the [My Home Assistant](https://my.home-assistant.io/redirect/hacs_repository/?owner=Przemko92&repository=home-assistant-allegro&category=integration) button above, **or** add this repository as a custom repository (`https://github.com/Przemko92/home-assistant-allegro`, category **Integration**)
-3. Search for **Allegro buyer** and download it
+**Allegro buyer** is in the HACS default store.
+
+1. Open HACS → **Integrations**
+2. Use the button above to open this integration in HACS, or search for **Allegro buyer**
+3. Download it
 4. Restart Home Assistant
 5. Optionally install the [Browser Companion](https://github.com/Przemko92/homeassistant-browser-companion) add-on (Home Assistant OS / Supervised) for in-UI sign-in
 6. [Add the integration](https://my.home-assistant.io/redirect/config_flow_start/?domain=allegro): Settings → Devices & services → **Allegro buyer**
    - **Browser Companion** (optional): sign in at allegro.pl in the sidebar browser, then open **Moje Allegro → Zakupy → Kupione**. `QXLSESSID` is captured there
    - **Paste QXLSESSID**: browser dev tools (F12)
+
+If you added `https://github.com/Przemko92/home-assistant-allegro` as a custom repository before it joined the default store, remove that custom repository in HACS. The installed files stay, and later updates come from the default store.
 
 ### Manual
 
@@ -190,7 +194,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 [commits-shield]: https://img.shields.io/github/commit-activity/y/Przemko92/home-assistant-allegro.svg?style=for-the-badge
 
 [hacs]: https://github.com/hacs/integration
-[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
+[hacsbadge]: https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge
 
 [validate]: https://github.com/Przemko92/home-assistant-allegro/actions/workflows/validate.yml
 [validate-shield]: https://github.com/Przemko92/home-assistant-allegro/actions/workflows/validate.yml/badge.svg
