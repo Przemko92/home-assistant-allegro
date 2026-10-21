@@ -63,7 +63,9 @@ HACS installs from GitHub **releases** (not from a git tag alone).
 3. Create a GitHub release whose tag equals that version (for example `0.0.6`). GitHub can generate release notes from `.github/release.yml`.
 4. The **Release** workflow checks that the tag matches the manifest and attaches `allegro.zip` to the release.
 
-Until the integration is in the HACS default store, users add this repository as a custom repository. After a successful HACS + hassfest run on `main` and a new release, submit a PR to [hacs/default](https://github.com/hacs/default) (`integration` file, alphabetical). The HACS action must pass **without** ignored checks.
+The integration is already in the [HACS default store](https://github.com/hacs/default) (`Przemko92/home-assistant-allegro` in the `integration` list). A new GitHub release is enough for HACS to offer the update on that existing entry.
+
+The HACS action on `main` must keep passing **without** ignored checks.
 
 GitHub repository settings that HACS also checks: a short description, issues enabled, and topics such as `hacs`, `home-assistant`, `custom-component`, `allegro`.
 
