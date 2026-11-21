@@ -23,7 +23,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install Ruff
-        run: python3 -m pip install "ruff==0.15.7"
+        run: grep '^ruff==' requirements.txt | xargs python3 -m pip install
 
       - name: Ruff check
         run: python3 -m ruff check .
