@@ -20,7 +20,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .api import AllegroApiClient
+from .api import AllegroApiClient, AllegroApiError
 from .const import (
     ALLEGRO_ORDERS_URL,
     ALLEGRO_START_URL,
@@ -155,7 +155,7 @@ async def _async_test_credentials(hass, cookie: str) -> str | None:
     try:
         client = AllegroApiClient(cookie, async_get_clientsession(hass))
         return await client.async_get_login()
-    except Exception as exception:  # pylint: disable=broad-except
+    except AllegroApiError as exception:
         _LOGGER.error("Error while testing credentials: %s", exception)
         return None
 
